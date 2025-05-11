@@ -89,7 +89,7 @@ app.post('/api/send-email', async (req, res) => {
     return res.status(400).json({ error: 'Email is required' });
   }
 
-  const emailRegex = /^(.*@(ucla\.edu|g\.ucla\.edu))$/;
+  const emailRegex = /^(.*@(ucla\.edu|g\.ucla\.edu|uclacsc\.org))$/; // Originally we locked out the transportation admin email!
   if (!emailRegex.test(email)) {
     return res.status(400).json({ error: 'Email must be from @ucla.edu or @g.ucla.edu domain' });
   }
