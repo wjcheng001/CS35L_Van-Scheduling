@@ -8,7 +8,13 @@ import WelcomeScreen from './src/screens/WelcomeScreen';
 import AuthScreen from './src/screens/AuthScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import SchedulingScreen from './src/screens/SchedulingScreen';
+import { BACKEND_URL } from './secrets';
 
+fetch(`${BACKEND_URL}/api/trips`)
+  .then((res) => res.json())
+  .then((data) => {
+    console.log('Trips:', data);
+  });
 
 const Stack = createNativeStackNavigator();
 <Button title="Go to Schedule" onPress={() => navigation.navigate('Schedule')} />
