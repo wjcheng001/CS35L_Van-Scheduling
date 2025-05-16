@@ -4,7 +4,7 @@ import { jwtDecode } from "jwt-decode";
 
 function App() {
   const [msg, setMsg] = useState('');
-  const [user,setUser] = useState(null)
+  const [user, setUser] = useState(null)
 
   // useEffect(() => {
   //   fetch('/api/test')
