@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
-const secrets = require('./secrets.js');
+const secrets = require('../client/secrets.js');
 const mongoose = require('mongoose');
 
 const app = express();
@@ -10,14 +10,14 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
-// ✅ ROUTE: Test route that always works
+// ROUTE: Test route that always works
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Hello from server!' });
 });
 
-// ✅ Start server early
+// Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`Server running at http://localhost:${PORT}`);
 });
 
 // === MONGOOSE SETUP ===
@@ -63,8 +63,16 @@ db.once('open', async () => {
   ];
 
   try {
-    await User.insertMany(sample);
-    console.log('Insertion successful');
+    for (const user of sample) {
+      const exists = await User.exists({ uid: user.uid });
+      if (!exists) {
+        await User.create(user);
+        console.log(`Inserted user with UID: ${user.uid}`);
+      } else {
+        console.log(`User with UID: ${user.uid} already exists.`);
+      }
+    }
+    console.log('Insertion process completed.');
   } catch (err) {
     console.error('Insert error:', err.message);
   } finally {
