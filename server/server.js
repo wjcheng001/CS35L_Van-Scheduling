@@ -1,14 +1,61 @@
 const express = require('express');
 const cors = require('cors');
-const nodemailer = require('nodemailer');
-const secrets = require('../client/secrets.js');
+const cookieParser = require("cookie-parser");
+const { OAuth2Client } = require("google-auth-library");
+const session = require("express-session"); 
 const mongoose = require('mongoose');
+const secrets = require('./secrets.js');
 
 const app = express();
 const PORT = 3000;
+const client = new OAuth2Client(secrets.CLIENT_ID); 
 
-app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
+app.use(cors({
+  origin: "http://localhost:5173", // set to frontend origin
+  credentials: true, // allow cookies
+}));
+
+// Session middleware (simple example)
+app.use(session({
+  secret: "7D#1d9!f$8@K3m@E*Zp9Df&L3xVmQ@Y#", // hide later
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    httpOnly: true,
+    secure: false, // set to true in production with HTTPS
+    sameSite: "Lax",
+  }
+}));
+
+app.post("/api/auth/google", async (req, res) => {
+  const { idToken } = req.body;
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: secrets.CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+
+    // Validate email domain again server-side
+    if (!payload.email.endsWith("@g.ucla.edu")) {
+      return res.status(403).json({ error: "Unauthorized domain" });
+    }
+
+    // Set session
+    req.session.user = {
+      name: payload.name,
+      email: payload.email,
+      picture: payload.picture,
+    };
+
+    return res.json({ message: "Login successful" });
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    return res.status(401).json({ error: "Invalid token" });
+  }
+});
 
 // ROUTE: Test route that always works
 app.get('/api/test', (req, res) => {
@@ -19,6 +66,8 @@ app.get('/api/test', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
+
+
 
 // === MONGOOSE SETUP ===
 mongoose.connect('mongodb://localhost:27017/35ldb', {
@@ -77,42 +126,5 @@ db.once('open', async () => {
     console.error('Insert error:', err.message);
   } finally {
     mongoose.disconnect();
-  }
-});
-
-
-// Email verification
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: secrets.GMAIL,
-    pass: secrets.PASS
-  }
-});
-
-app.post('/api/send-email', async (req, res) => {
-  const { email } = req.body;
-
-  if (!email) {
-    return res.status(400).json({ error: 'Email is required' });
-  }
-
-  const emailRegex = /^(.*@(ucla\.edu|g\.ucla\.edu|uclacsc\.org))$/; // Originally we locked out the transportation admin email!
-  if (!emailRegex.test(email)) {
-    return res.status(400).json({ error: 'Email must be from @ucla.edu or @g.ucla.edu domain' });
-  }
-
-  try {
-    const info = await transporter.sendMail({
-      from: '"CSC Van Scheduling" <your-email@gmail.com>',
-      to: email,
-      subject: 'Test Email from Backend',
-      text: 'Hello! This is a test email sent from your Node.js backend.',
-    });
-
-    res.json({ message: 'Email sent!', info });
-  } catch (err) {
-    console.error('Email send error:', err);
-    res.status(500).json({ error: 'Failed to send email' });
   }
 });

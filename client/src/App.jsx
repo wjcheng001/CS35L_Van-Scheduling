@@ -19,6 +19,25 @@ function Login() {
             if (decoded.email && decoded.email.endsWith("@g.ucla.edu")) {
               setUser(decoded);
               setError("");
+              fetch("http://localhost:3000/api/auth/google", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                credentials: "include", // Important if your backend sets an httpOnly cookie
+                body: JSON.stringify({ idToken: credentialResponse.credential }),
+              }).then((res) => {
+                if (!res.ok) {
+                  throw new Error("Failed to authenticate with backend");
+                }
+                return res.json();
+              }).then(data => {
+                console.log("Session established:", data);
+                // Optionally store a sessionID (only if not using httpOnly cookies)
+              }).catch((err) => {
+                console.error(err);
+                setError("Failed to login to backend");
+              });
             } else {
               setError("Only @g.ucla.edu email addresses are allowed.");
             }
