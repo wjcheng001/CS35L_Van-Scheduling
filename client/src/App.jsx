@@ -1,4 +1,4 @@
-import { Router as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
@@ -60,12 +60,12 @@ function Login() {
 
 function App() {
   return (
-    <Router>
+    <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/dashboard" element={<DashboardScreen />} />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
 }
 
