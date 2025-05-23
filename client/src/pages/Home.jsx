@@ -10,6 +10,12 @@ import "../styles/home.css";
   Go to Dashboard
 </button>
 
+const navigate = useNavigate();
+
+// Then inside JSX:
+<button onClick={() => navigate("/profile")}>
+  Go to Profile
+</button>
 
 export default function Home() {
   const navigate = useNavigate();
