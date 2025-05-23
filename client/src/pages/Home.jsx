@@ -8,27 +8,28 @@ export default function Home() {
   const navigate = useNavigate();
 
   return (
-     <div className="home-container">
-      <div className="home-content">
-        <Header />
+    <div>
+      <div className="home-container">
+        <div className="home-content">
+          <Header />
 
-        <button
-          className="dashboard-button"
-          onClick={() => navigate("/dashboard")}
-        >
-          Go to Dashboard
-        </button>
+          <button
+            className="dashboard-button"
+            onClick={() => navigate("/dashboard")}
+          >
+            Go to Dashboard
+          </button>
 
-        <button
-          className="profile-button"
-          onClick={() => navigate("/profile")}
-        >
-          Go to Profile
-        </button>
+          <button
+            className="profile-button"
+            onClick={() => navigate("/profile")}
+          >
+            Go to Profile
+          </button>
 
-        <Footer />
+          <Footer />
+        </div>
       </div>
-    </div>
     
     <div className="home-container">
       <div className="home-content">
