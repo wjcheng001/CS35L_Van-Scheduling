@@ -5,17 +5,6 @@ import { jwtDecode } from "jwt-decode";
 import Home from "./pages/Home";
 import DashboardScreen from "./pages/DashboardScreen";
 
-export default function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/dashboard" element={<DashboardScreen />} />
-      </Routes>
-    </BrowserRouter>
-  );
-}
-
 function Login() {
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
@@ -71,12 +60,12 @@ function Login() {
 
 function App() {
   return (
-    <Router>
+    <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={<DashboardScreen />} />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
 }
 
