@@ -4,7 +4,6 @@ import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
 import Home from "./pages/Home";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Home from "./pages/Home";
 import DashboardScreen from "./pages/DashboardScreen";
 
 export default function App() {
