@@ -60,12 +60,12 @@ function Login() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/dashboard" element={<DashboardScreen />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
 
