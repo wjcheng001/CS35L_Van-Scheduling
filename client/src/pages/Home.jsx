@@ -3,6 +3,14 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import "../styles/home.css";
 
+<button
+  className="dashboard-button"
+  onClick={() => navigate("/dashboard")}
+>
+  Go to Dashboard
+</button>
+
+
 export default function Home() {
   const navigate = useNavigate();
 
