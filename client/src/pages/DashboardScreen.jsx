@@ -1,5 +1,5 @@
 import React from "react";
-import "./dashboard.css"; // Optional CSS file if you'd like to style separately
+import "../styles/dashboard.css";
 
 function TimeCard({ title, onClick }) {
   return (
