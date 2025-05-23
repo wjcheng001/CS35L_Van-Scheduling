@@ -3,23 +3,33 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import "../styles/home.css";
 
-<button
-  className="dashboard-button"
-  onClick={() => navigate("/dashboard")}
->
-  Go to Dashboard
-</button>
-
-
-
-<button onClick={() => navigate("/profile")}>
-  Go to Profile
-</button>
 
 export default function Home() {
   const navigate = useNavigate();
 
   return (
+     <div className="home-container">
+      <div className="home-content">
+        <Header />
+
+        <button
+          className="dashboard-button"
+          onClick={() => navigate("/dashboard")}
+        >
+          Go to Dashboard
+        </button>
+
+        <button
+          className="profile-button"
+          onClick={() => navigate("/profile")}
+        >
+          Go to Profile
+        </button>
+
+        <Footer />
+      </div>
+    </div>
+    
     <div className="home-container">
       <div className="home-content">
         <Header />
