@@ -4,6 +4,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
+import DriverApplication from "./pages/DriverApplication";
 import DashboardScreen from "./pages/DashboardScreen";
 
 function Login() {
@@ -61,13 +62,17 @@ function Login() {
 
 function App() {
   return (
-<BrowserRouter>
-  <Routes>
-    <Route path="/" element={<Home />} />
-    <Route path="/dashboard" element={<DashboardScreen />} />
-    <Route path="/profile" element={<Profile />} />
-  </Routes>
-</BrowserRouter>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/dashboard" element={<DashboardScreen />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/app" element={<DriverApplication />} />
+        <Route path="/login" element={<Login />} />
+
+
+      </Routes>
+    </BrowserRouter>
   );
 }
 
