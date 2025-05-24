@@ -10,21 +10,6 @@ export default function Home() {
     <div className="home-container">
       <div className="home-content">
         <Header />
-
-        <button
-          className="dashboard-button"
-          onClick={() => navigate("/dashboard")}
-        >
-          Go to Dashboard
-        </button>
-
-        <button
-          className="profile-button"
-          onClick={() => navigate("/profile")}
-        >
-          Go to Profile
-        </button>
-
         <div className="hero-section">
           <div className="hero-content">
             <div className="hero-images">
