@@ -10,6 +10,13 @@ const app = express();
 const PORT = 3000;
 const client = new OAuth2Client(secrets.CLIENT_ID); 
 
+// List of admin emails
+const ADMIN_EMAILS = [
+  'transportation@uclacsc.org'
+  // TODO: replace with other admins after deployment
+  // To devs: Add your email if you wish to test admin functions
+];
+
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
@@ -69,15 +76,32 @@ db.once('open', async () => {
 
   const User = mongoose.model('User', userSchema);
 
-  // Sample data insertion
-  const sample = [
-    { uid: 123456789, role: 'admin', email: '123@g.ucla.edu', approved: true },
+  // Hardcoded admin insertions
+  const adminUsers = [
+    { uid: 888888888, role: 'admin', email: 'transportation@uclacsc.org', approved: true }, // true UID REDACTED
+    // Devs: Add your info if you wish to test admin functions
+  ];
+
+  // Sample data insertion (non-admins)
+  const sampleUsers = [
     { uid: 987654321, role: 'user', email: '987@g.ucla.edu', approved: false },
     { uid: 110000000, role: 'user', email: '110@g.ucla.edu', approved: false }
   ];
 
   try {
-    for (const user of sample) {
+    // Insert admins
+    for (const admin of adminUsers) {
+      const exists = await User.exists({ uid: admin.uid });
+      if (!exists) {
+        await User.create(admin);
+        console.log(`Inserted admin with UID: ${admin.uid}`);
+      } else {
+        console.log(`Admin with UID: ${admin.uid} already exists.`);
+      }
+    }
+
+    // Insert sample users
+    for (const user of sampleUsers) {
       const exists = await User.exists({ uid: user.uid });
       if (!exists) {
         await User.create(user);
@@ -102,8 +126,8 @@ app.post("/api/auth/google", async (req, res) => {
     });
     const payload = ticket.getPayload();
 
-    // Validate email domain
-    if (!payload.email.endsWith("@g.ucla.edu")) {
+    // Validate email domain, with exception for admin emails
+    if (!payload.email.endsWith("@g.ucla.edu") && !ADMIN_EMAILS.includes(payload.email)) {
       return res.status(403).json({ error: "Unauthorized domain" });
     }
 
@@ -113,9 +137,12 @@ app.post("/api/auth/google", async (req, res) => {
 
     // If user doesn't exist, prompt for UID entry
     if (!user) {
+      // Check if email is in admin list
+      const isAdmin = ADMIN_EMAILS.includes(payload.email);
       return res.status(200).json({ 
         message: "New user detected",
         isNewUser: true,
+        isAdmin: isAdmin,
         user: {
           name: payload.name,
           email: payload.email,
@@ -160,11 +187,12 @@ app.post("/api/auth/register", async (req, res) => {
     if (exists) {
       return res.status(400).json({ error: "UID already exists" });
     }
+    const isAdmin = ADMIN_EMAILS.includes(email);
     const user = await User.create({
       uid,
-      role: 'user',
+      role: isAdmin ? 'admin' : 'user',
       email,
-      approved: false
+      approved: isAdmin ? true : false
     });
     req.session.user = { 
       name: req.session.user?.name || 'Unknown',
