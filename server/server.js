@@ -17,9 +17,9 @@ app.use(cors({
   credentials: true, // allow cookies
 }));
 
-// Session middleware (simple example)
+// Session middleware
 app.use(session({
-  secret: "7D#1d9!f$8@K3m@E*Zp9Df&L3xVmQ@Y#", // hide later
+  secret: "REDACTED", // hide later
   resave: false,
   saveUninitialized: true,
   cookie: {
@@ -29,47 +29,7 @@ app.use(session({
   }
 }));
 
-app.post("/api/auth/google", async (req, res) => {
-  const { idToken } = req.body;
-  try {
-    const ticket = await client.verifyIdToken({
-      idToken,
-      audience: secrets.CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
-
-    // Validate email domain again server-side
-    if (!payload.email.endsWith("@g.ucla.edu")) {
-      return res.status(403).json({ error: "Unauthorized domain" });
-    }
-
-    // Set session
-    req.session.user = {
-      name: payload.name,
-      email: payload.email,
-      picture: payload.picture,
-    };
-
-    return res.json({ message: "Login successful" });
-  } catch (error) {
-    console.error("Token verification failed:", error);
-    return res.status(401).json({ error: "Invalid token" });
-  }
-});
-
-// ROUTE: Test route that always works
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'Hello from server!' });
-});
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
-
-
-
-// === MONGOOSE SETUP ===
+// MONGOOSE SETUP
 mongoose.connect('mongodb://localhost:27017/35ldb', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -99,6 +59,11 @@ db.once('open', async () => {
     email: {
       type: String,
       required: true
+    },
+    approved: {
+      type: Boolean,
+      required: true,
+      default: false
     }
   }, { versionKey: false });
 
@@ -106,9 +71,9 @@ db.once('open', async () => {
 
   // Sample data insertion
   const sample = [
-    { uid: 123456789, role: 'admin', email: '123@g.ucla.edu' },
-    { uid: 987654321, role: 'user', email: '987@g.ucla.edu' },
-    { uid: 110000000, role: 'user', email: '110@g.ucla.edu' }
+    { uid: 123456789, role: 'admin', email: '123@g.ucla.edu', approved: true },
+    { uid: 987654321, role: 'user', email: '987@g.ucla.edu', approved: false },
+    { uid: 110000000, role: 'user', email: '110@g.ucla.edu', approved: false }
   ];
 
   try {
@@ -124,7 +89,148 @@ db.once('open', async () => {
     console.log('Insertion process completed.');
   } catch (err) {
     console.error('Insert error:', err.message);
-  } finally {
-    mongoose.disconnect();
   }
+});
+
+// Google OAuth login
+app.post("/api/auth/google", async (req, res) => {
+  const { idToken } = req.body;
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: secrets.CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+
+    // Validate email domain
+    if (!payload.email.endsWith("@g.ucla.edu")) {
+      return res.status(403).json({ error: "Unauthorized domain" });
+    }
+
+    // Query database for user by email
+    const User = mongoose.model('User');
+    const user = await User.findOne({ email: payload.email });
+
+    // If user doesn't exist, prompt for UID entry
+    if (!user) {
+      return res.status(200).json({ 
+        message: "New user detected",
+        isNewUser: true,
+        user: {
+          name: payload.name,
+          email: payload.email,
+          picture: payload.picture
+        }
+      });
+    }
+
+    // Set session with user data including approved status
+    req.session.user = {
+      name: payload.name,
+      email: payload.email,
+      picture: payload.picture,
+      role: user.role,
+      uid: user.uid,
+      approved: user.approved
+    };
+
+    return res.json({ 
+      message: "Login successful",
+      isNewUser: false,
+      user: {
+        name: payload.name,
+        email: payload.email,
+        role: user.role,
+        uid: user.uid,
+        approved: user.approved
+      }
+    });
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    return res.status(401).json({ error: "Invalid token" });
+  }
+});
+
+// Register new user with UID
+app.post("/api/auth/register", async (req, res) => {
+  const { uid, email } = req.body;
+  try {
+    const User = mongoose.model('User');
+    const exists = await User.exists({ uid });
+    if (exists) {
+      return res.status(400).json({ error: "UID already exists" });
+    }
+    const user = await User.create({
+      uid,
+      role: 'user',
+      email,
+      approved: false
+    });
+    req.session.user = { 
+      name: req.session.user?.name || 'Unknown',
+      email: user.email,
+      picture: req.session.user?.picture,
+      uid: user.uid,
+      role: user.role,
+      approved: user.approved
+    };
+    return res.json({ 
+      message: "User registered successfully",
+      user: {
+        name: req.session.user.name,
+        email: user.email,
+        role: user.role,
+        uid: user.uid,
+        approved: user.approved
+      }
+    });
+  } catch (error) {
+    console.error("User registration failed:", error);
+    return res.status(400).json({ error: "Invalid UID or registration failed" });
+  }
+});
+
+// Admin endpoint to approve user by UID
+app.post("/api/admin/approve-user", async (req, res) => {
+  const { uid } = req.body;
+  try {
+    // Check if requester is admin
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Unauthorized: Admin access required" });
+    }
+
+    const User = mongoose.model('User');
+    const user = await User.findOneAndUpdate(
+      { uid },
+      { $set: { approved: true } },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.json({
+      message: "User approved successfully",
+      user: {
+        uid: user.uid,
+        email: user.email,
+        role: user.role,
+        approved: user.approved
+      }
+    });
+  } catch (error) {
+    console.error("User approval failed:", error);
+    return res.status(400).json({ error: "Failed to approve user" });
+  }
+});
+
+// Test route
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'Hello from server!' });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
 });
