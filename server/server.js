@@ -37,86 +37,85 @@ app.use(session({
 }));
 
 // MONGOOSE SETUP
-mongoose.connect('mongodb://localhost:27017/35ldb', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+// mongoose.connect('mongodb://localhost:27017/35ldb', {
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true,
+// });
 
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-db.once('open', async () => {
-  console.log('Connected to MongoDB');
+// const db = mongoose.connection;
+// db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+// db.once('open', async () => {
+//   console.log('Connected to MongoDB');
 
-  // SCHEMA
-  const userSchema = new mongoose.Schema({
-    uid: {
-      type: Number,
-      validate: {
-        validator: num => /^\d{9}$/.test(num),
-        message: props => `Invalid uid ${props.value}`
-      },
-      required: true,
-      unique: true
-    },
-    role: {
-      type: String,
-      enum: ['user', 'admin'],
-      required: true
-    },
-    email: {
-      type: String,
-      required: true
-    },
-    approved: {
-      type: Boolean,
-      required: true,
-      default: false
-    }
-  }, { versionKey: false });
+//   // SCHEMA
+//   const userSchema = new mongoose.Schema({
+//     uid: {
+//       type: Number,
+//       validate: {
+//         validator: num => /^\d{9}$/.test(num),
+//         message: props => `Invalid uid ${props.value}`
+//       },
+//       required: true,
+//       unique: true
+//     },
+//     role: {
+//       type: String,
+//       enum: ['user', 'admin'],
+//       required: true
+//     },
+//     email: {
+//       type: String,
+//       required: true
+//     },
+//     approved: {
+//       type: Boolean,
+//       required: true,
+//       default: false
+//     }
+//   }, { versionKey: false });
 
-  const User = mongoose.model('User', userSchema);
+//   const User = mongoose.model('User', userSchema);
 
-  // Hardcoded admin insertions
-  const adminUsers = [
-    { uid: 888888888, role: 'admin', email: 'transportation@uclacsc.org', approved: true }, // true UID REDACTED
-    // Devs: Add your info if you wish to test admin functions
-  ];
+//   // Hardcoded admin insertions
+//   const adminUsers = [
+//     { uid: 888888888, role: 'admin', email: 'transportation@uclacsc.org', approved: true }, // true UID REDACTED
+//     // Devs: Add your info if you wish to test admin functions
+//   ];
 
-  // Sample data insertion (non-admins)
-  const sampleUsers = [
-    { uid: 987654321, role: 'user', email: '987@g.ucla.edu', approved: false },
-    { uid: 110000000, role: 'user', email: '110@g.ucla.edu', approved: false }
-  ];
+//   // Sample data insertion (non-admins)
+//   const sampleUsers = [
+//     { uid: 987654321, role: 'user', email: '987@g.ucla.edu', approved: false },
+//     { uid: 110000000, role: 'user', email: '110@g.ucla.edu', approved: false }
+//   ];
 
-  try {
-    // Insert admins
-    for (const admin of adminUsers) {
-      const exists = await User.exists({ uid: admin.uid });
-      if (!exists) {
-        await User.create(admin);
-        console.log(`Inserted admin with UID: ${admin.uid}`);
-      } else {
-        console.log(`Admin with UID: ${admin.uid} already exists.`);
-      }
-    }
+//   try {
+//     // Insert admins
+//     for (const admin of adminUsers) {
+//       const exists = await User.exists({ uid: admin.uid });
+//       if (!exists) {
+//         await User.create(admin);
+//         console.log(`Inserted admin with UID: ${admin.uid}`);
+//       } else {
+//         console.log(`Admin with UID: ${admin.uid} already exists.`);
+//       }
+//     }
 
-    // Insert sample users
-    for (const user of sampleUsers) {
-      const exists = await User.exists({ uid: user.uid });
-      if (!exists) {
-        await User.create(user);
-        console.log(`Inserted user with UID: ${user.uid}`);
-      } else {
-        console.log(`User with UID: ${user.uid} already exists.`);
-      }
-    }
-    console.log('Insertion process completed.');
-  } catch (err) {
-    console.error('Insert error:', err.message);
-  }
-});
+//     // Insert sample users
+//     for (const user of sampleUsers) {
+//       const exists = await User.exists({ uid: user.uid });
+//       if (!exists) {
+//         await User.create(user);
+//         console.log(`Inserted user with UID: ${user.uid}`);
+//       } else {
+//         console.log(`User with UID: ${user.uid} already exists.`);
+//       }
+//     }
+//     console.log('Insertion process completed.');
+//   } catch (err) {
+//     console.error('Insert error:', err.message);
+//   }
+// });
 
-// Google OAuth login
 app.post("/api/auth/google", async (req, res) => {
   const { idToken } = req.body;
   try {
@@ -126,56 +125,38 @@ app.post("/api/auth/google", async (req, res) => {
     });
     const payload = ticket.getPayload();
 
-    // Validate email domain, with exception for admin emails
-    if (!payload.email.endsWith("@g.ucla.edu") && !ADMIN_EMAILS.includes(payload.email)) {
+    // Validate email domain again server-side
+    if (!payload.email.endsWith("@g.ucla.edu")) {
       return res.status(403).json({ error: "Unauthorized domain" });
     }
 
-    // Query database for user by email
-    const User = mongoose.model('User');
-    const user = await User.findOne({ email: payload.email });
-
-    // If user doesn't exist, prompt for UID entry
-    if (!user) {
-      // Check if email is in admin list
-      const isAdmin = ADMIN_EMAILS.includes(payload.email);
-      return res.status(200).json({ 
-        message: "New user detected",
-        isNewUser: true,
-        isAdmin: isAdmin,
-        user: {
-          name: payload.name,
-          email: payload.email,
-          picture: payload.picture
-        }
-      });
-    }
-
-    // Set session with user data including approved status
+    // Set session
     req.session.user = {
       name: payload.name,
       email: payload.email,
       picture: payload.picture,
-      role: user.role,
-      uid: user.uid,
-      approved: user.approved
     };
 
-    return res.json({ 
-      message: "Login successful",
-      isNewUser: false,
-      user: {
-        name: payload.name,
-        email: payload.email,
-        role: user.role,
-        uid: user.uid,
-        approved: user.approved
-      }
-    });
+    return res.json({ message: "Login successful" });
   } catch (error) {
     console.error("Token verification failed:", error);
     return res.status(401).json({ error: "Invalid token" });
   }
+});
+
+app.get("/api/session", (req, res) => {
+  if (req.session.user) {
+    res.json({ user: req.session.user });
+  } else {
+    res.status(401).json({ error: "Not logged in" });
+  }
+});
+
+app.post("/api/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie("connect.sid");
+    res.json({ message: "Logged out" });
+  });
 });
 
 // Register new user with UID
@@ -251,11 +232,6 @@ app.post("/api/admin/approve-user", async (req, res) => {
     console.error("User approval failed:", error);
     return res.status(400).json({ error: "Failed to approve user" });
   }
-});
-
-// Test route
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'Hello from server!' });
 });
 
 // Start server
