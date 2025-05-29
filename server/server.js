@@ -10,12 +10,7 @@ const app = express();
 const PORT = 3000;
 const client = new OAuth2Client(secrets.CLIENT_ID); 
 
-// List of admin emails
-const ADMIN_EMAILS = [
-  'transportation@uclacsc.org'
-  // TODO: replace with other admins after deployment
-  // To devs: Add your email if you wish to test admin functions
-];
+const ADMIN_EMAILS = ['transportation@uclacsc.org'];
 
 app.use(express.json());
 app.use(cookieParser());
@@ -35,6 +30,73 @@ app.use(session({
     sameSite: "Lax",
   }
 }));
+
+// AUTH API
+const requireAuth = (req, res, next) => {
+  if (!req.session.user) return res.status(401).json({ error: "Not logged in" });
+  next();
+};
+
+app.post("/api/auth/google", async (req, res) => {
+  const { idToken } = req.body;
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: secrets.CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+
+    // Validate email domain again server-side
+    if (!payload.email.endsWith("@g.ucla.edu") && !ADMIN_EMAILS.includes(payload.email)) {
+      return res.status(403).json({ error: "Unauthorized domain" });
+    }
+
+    // Set session
+    req.session.user = {
+      name: payload.name,
+      email: payload.email,
+      picture: payload.picture,
+    };
+
+    return res.json({ message: "Login successful" });
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    return res.status(401).json({ error: "Invalid token" });
+  }
+});
+
+app.get("/api/auth/session", requireAuth, (req, res) => { 
+  res.json({ user: req.session.user });
+});
+
+app.post("/api/auth/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie("connect.sid");
+    res.json({ message: "Logged out" });
+  });
+});
+
+// DATABASE API
+app.post("/api/data/update", async (req, res) => {
+  const { uid, etc } = req.body; // ANY INFO
+  if (uid) {
+    // Handle logic with uid
+  } else {
+    // Handle default or skip uid logic
+  }
+  // repeat for each additional parameter <etc>
+});
+
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});
+
+
+
+
+
 
 // MONGOOSE SETUP
 // mongoose.connect('mongodb://localhost:27017/35ldb', {
@@ -115,126 +177,83 @@ app.use(session({
 //     console.error('Insert error:', err.message);
 //   }
 // });
+//
+// // Register new user with UID
+// app.post("/api/auth/register", async (req, res) => {
+//   const { uid, email } = req.body;
+//   try {
+//     const User = mongoose.model('User');
+//     const exists = await User.exists({ uid });
+//     if (exists) {
+//       return res.status(400).json({ error: "UID already exists" });
+//     }
+//     const isAdmin = ADMIN_EMAILS.includes(email);
+//     const user = await User.create({
+//       uid,
+//       role: isAdmin ? 'admin' : 'user',
+//       email,
+//       approved: isAdmin ? true : false
+//     });
+//     req.session.user = { 
+//       name: req.session.user?.name || 'Unknown',
+//       email: user.email,
+//       picture: req.session.user?.picture,
+//       uid: user.uid,
+//       role: user.role,
+//       approved: user.approved
+//     };
+//     return res.json({ 
+//       message: "User registered successfully",
+//       user: {
+//         name: req.session.user.name,
+//         email: user.email,
+//         role: user.role,
+//         uid: user.uid,
+//         approved: user.approved
+//       }
+//     });
+//   } catch (error) {
+//     console.error("User registration failed:", error);
+//     return res.status(400).json({ error: "Invalid UID or registration failed" });
+//   }
+// });
+//
+// // Admin endpoint to approve user by UID
+// app.post("/api/admin/approve-user", async (req, res) => {
+//   const { uid } = req.body;
+//   try {
+//     // Check if requester is admin
+//     if (!req.session.user || req.session.user.role !== 'admin') {
+//       return res.status(403).json({ error: "Unauthorized: Admin access required" });
+//     }
 
-app.post("/api/auth/google", async (req, res) => {
-  const { idToken } = req.body;
-  try {
-    const ticket = await client.verifyIdToken({
-      idToken,
-      audience: secrets.CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
+//     const User = mongoose.model('User');
+//     const user = await User.findOneAndUpdate(
+//       { uid },
+//       { $set: { approved: true } },
+//       { new: true }
+//     );
 
-    // Validate email domain again server-side
-    if (!payload.email.endsWith("@g.ucla.edu")) {
-      return res.status(403).json({ error: "Unauthorized domain" });
-    }
+//     if (!user) {
+//       return res.status(404).json({ error: "User not found" });
+//     }
 
-    // Set session
-    req.session.user = {
-      name: payload.name,
-      email: payload.email,
-      picture: payload.picture,
-    };
+//     return res.json({
+//       message: "User approved successfully",
+//       user: {
+//         uid: user.uid,
+//         email: user.email,
+//         role: user.role,
+//         approved: user.approved
+//       }
+//     });
+//   } catch (error) {
+//     console.error("User approval failed:", error);
+//     return res.status(400).json({ error: "Failed to approve user" });
+//   }
+// });
 
-    return res.json({ message: "Login successful" });
-  } catch (error) {
-    console.error("Token verification failed:", error);
-    return res.status(401).json({ error: "Invalid token" });
-  }
-});
-
-app.get("/api/session", (req, res) => {
-  if (req.session.user) {
-    res.json({ user: req.session.user });
-  } else {
-    res.status(401).json({ error: "Not logged in" });
-  }
-});
-
-app.post("/api/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie("connect.sid");
-    res.json({ message: "Logged out" });
-  });
-});
-
-// Register new user with UID
-app.post("/api/auth/register", async (req, res) => {
-  const { uid, email } = req.body;
-  try {
-    const User = mongoose.model('User');
-    const exists = await User.exists({ uid });
-    if (exists) {
-      return res.status(400).json({ error: "UID already exists" });
-    }
-    const isAdmin = ADMIN_EMAILS.includes(email);
-    const user = await User.create({
-      uid,
-      role: isAdmin ? 'admin' : 'user',
-      email,
-      approved: isAdmin ? true : false
-    });
-    req.session.user = { 
-      name: req.session.user?.name || 'Unknown',
-      email: user.email,
-      picture: req.session.user?.picture,
-      uid: user.uid,
-      role: user.role,
-      approved: user.approved
-    };
-    return res.json({ 
-      message: "User registered successfully",
-      user: {
-        name: req.session.user.name,
-        email: user.email,
-        role: user.role,
-        uid: user.uid,
-        approved: user.approved
-      }
-    });
-  } catch (error) {
-    console.error("User registration failed:", error);
-    return res.status(400).json({ error: "Invalid UID or registration failed" });
-  }
-});
-
-// Admin endpoint to approve user by UID
-app.post("/api/admin/approve-user", async (req, res) => {
-  const { uid } = req.body;
-  try {
-    // Check if requester is admin
-    if (!req.session.user || req.session.user.role !== 'admin') {
-      return res.status(403).json({ error: "Unauthorized: Admin access required" });
-    }
-
-    const User = mongoose.model('User');
-    const user = await User.findOneAndUpdate(
-      { uid },
-      { $set: { approved: true } },
-      { new: true }
-    );
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    return res.json({
-      message: "User approved successfully",
-      user: {
-        uid: user.uid,
-        email: user.email,
-        role: user.role,
-        approved: user.approved
-      }
-    });
-  } catch (error) {
-    console.error("User approval failed:", error);
-    return res.status(400).json({ error: "Failed to approve user" });
-  }
-});
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+// // Start server
+// app.listen(PORT, () => {
+//   console.log(`Server running at http://localhost:${PORT}`);
+// });

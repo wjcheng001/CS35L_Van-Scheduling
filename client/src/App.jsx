@@ -19,7 +19,7 @@ function Login() {
             const decoded = jwtDecode(credentialResponse.credential);
             console.log("User info:", decoded);
 
-            if (decoded.email && decoded.email.endsWith("@g.ucla.edu")) {
+            if (decoded.email && (decoded.email.endsWith("@g.ucla.edu") || decoded.email.endsWith("@uclacsc.org") )) {
               setUser(decoded);
               setError("");
               fetch("http://localhost:3000/api/auth/google", {
