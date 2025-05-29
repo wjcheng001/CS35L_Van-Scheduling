@@ -77,7 +77,7 @@ app.post("/api/auth/logout", (req, res) => {
 });
 
 // DATABASE API
-app.post("/api/data/update", async (req, res) => {
+app.post("/api/data/update", requireAuth, async (req, res) => {
   const { uid, etc } = req.body; // ANY INFO
   if (uid) {
     // Handle logic with uid
