@@ -3,6 +3,7 @@ import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
 import VanReservation from "./pages/VanReserve";
+import Dashboard from "./pages/Dashboard";
 import VanReturn from "./pages/VanReturn";
 import Home from "./pages/Home";
 import DriverApplication from "./pages/DriverApplication";
@@ -67,6 +68,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/reserve" element={<VanReservation />} />
         <Route path="/return" element={<VanReturn />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/app" element={<DriverApplication />} />
         <Route path="/login" element={<Login />} />
       </Routes>
