@@ -195,19 +195,11 @@ try {
 
     if (user) {
       return res.json({
-        exists: true, // frontend redirect to dashboard
-        user: {
-          uid: user.uid,
-          email: user.email,
-          role: user.role,
-          approved: user.approved
-        },
-        message: "For Debug: User Already Exists" 
+        exists: true
       });
     } else {
       return res.json({
-        exists: false, // frontend redirect to welcome page if see this
-        message: "New User"
+        exists: false
       });
     }
   } catch (error) {
