@@ -4,9 +4,9 @@ import { useNavigate } from "react-router-dom";
 const VanReturn = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    bookingId: "BK12345", // Pre-filled booking ID
-    projectName: "CSSA PROM", // Pre-filled project name
-    vanSerialNumber: "405437", // Pre-filled van serial number
+    bookingId: "BK12345", 
+    projectName: "CSSA PROM", 
+    vanSerialNumber: "405437", 
     returnDate: "",
     returnTime: "",
     fuelLevel: "",
@@ -44,8 +44,7 @@ const VanReturn = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Return form submitted:", formData);
-    // Here you would typically send the data to your backend
-    // After successful submission, navigate to success page
+
     navigate("/return-success");
   };
 
