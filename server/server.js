@@ -119,6 +119,11 @@ const requireAuth = (req, res, next) => {
   next();
 };
 
+const requireAdmin = (req, res, next) => {
+  if (!ADMIN_EMAILS.includes(req.session.user.email)) return res.status(403).json({ error: "Unauthorized: Admin access required" });
+  next();
+}
+
 
 /* ########################
    ###     AUTH API     ### 
@@ -267,14 +272,9 @@ app.get("/api/auth/register", async (req, res) => {
 /* ############### APPROVED DRIVER APPLICATION ################### */
 
 // Admin endpoint to approve user by UID
-// app.post("/api/admin/approve-user", requireAuth, async (req, res) => {
+// app.post("/api/admin/approve-user", requireAuth, requireAdmin, async (req, res) => {
 //   const { uid } = req.body;
 //   try {
-//     // Check if requester is admin
-//     if (!ADMIN_EMAILS.includes(req.session.user.email)) { 
-//       return res.status(403).json({ error: "Unauthorized: Admin access required" });
-//     }
-
 //     const User = mongoose.model('User');
 //     const user = await User.findOneAndUpdate(
 //       { uid },
