@@ -178,6 +178,21 @@ app.post("/api/auth/logout", (req, res) => {
    ###      DB API      ###    
    ######################## */
 
+
+
+  /* 
+  Workflow for API calls
+
+  * data/get (get userData)
+  |\ 
+  | * auth/register (if no user)
+  |/
+  * auth/checkUser 
+  * auth/google (login)
+
+  */
+
+
 // TODO get info based on user gmail
 // can view get via http://localhost:5173/api/data/get
 // develop fxns in get, to test curl -X GET http://localhost:5173/api/data/get -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
@@ -254,14 +269,7 @@ app.get("/api/auth/register", async (req, res) => {
     };
 
     return res.json({
-      message: "User registered successfully",
-      user: {
-        name: req.session.user.name,
-        email: user.email,
-        role: user.role,
-        uid: user.uid,
-        approved: user.approved
-      }
+      message: "User registered successfully"
     });
   } catch (error) {
     console.error("User registration failed:", error);
