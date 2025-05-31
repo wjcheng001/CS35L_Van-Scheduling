@@ -10,7 +10,7 @@ const app = express();
 const PORT = 3000;
 const client = new OAuth2Client(secrets.CLIENT_ID); 
 
-const ADMIN_EMAILS = ['transportation@uclacsc.org'];
+const ADMIN_EMAILS = ['transportation@uclacsc.org', 'wanjun01@g.ucla.edu'];
 
 app.use(express.json());
 app.use(cookieParser());
@@ -20,6 +20,7 @@ app.use(cors({
 }));
 
 // MONGOOSE SETUP
+/* ################## GROUP MEMBERS: COMMENT FROM HERE ############################ */
 mongoose.connect('mongodb://localhost:27017/35ldb', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -110,6 +111,7 @@ app.use(session({
     sameSite: "Lax",
   }
 }));
+/* ################## GROUP MEMBERS: TO HERE ############################ */
 
 // Add to any API that requires auth beforehand
 const requireAuth = (req, res, next) => {
@@ -121,6 +123,9 @@ const requireAuth = (req, res, next) => {
 /* ########################
    ###     AUTH API     ### 
    ######################## */
+
+// app.post -> frontend upload data from backend
+// app.get -> 
 
 // Authenticate google login and establish session cookie
 app.post("/api/auth/google", async (req, res) => {
@@ -165,40 +170,93 @@ app.post("/api/auth/logout", (req, res) => {
 });
 
 /* ########################
-   ###      DB API      ###    I DID NOT CHECK IF THESE FUNCTIONS ARE USABLE
+   ###      DB API      ###    
    ######################## */
 
 // TODO get info based on user gmail
-app.get("/api/data/get", requireAuth, async (req, res) => {
+// can view get via http://localhost:5173/api/data/get
+// develop fxns in get, to test curl -X GET http://localhost:5173/api/data/get -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+app.get("/api/data/get", async (req, res) => {
+  // query DB here
   return res.json({ message: "TODO" });
 });
 
-// Register new user with UID
-app.post("/api/auth/register", requireAuth, async (req, res) => {
-  const { uid } = req.body; // add additional information params you require in DB
-  const email = req.session.email // use email from google login
-  try {
+/* ############### NEW USER REGISTRATION ################### */
+
+/* Verify if the login is from a new user */
+// TODO: app.post("/api/auth/checkUser", requireAuth, async
+app.post("/api/auth/checkUser", async (req, res) => {
+try {    
+  const email = req.session.user.email;
     const User = mongoose.model('User');
+    
+    // Query email in DB
+    const user = await User.findOne({ email });
+
+    if (user) {
+      return res.json({
+        exists: true, // frontend redirect to dashboard
+        user: {
+          uid: user.uid,
+          email: user.email,
+          role: user.role,
+          approved: user.approved
+        },
+        message: "For Debug: User Already Exists" 
+      });
+    } else {
+      return res.json({
+        exists: false, // frontend redirect to welcome page if see this
+        message: "New User"
+      });
+    }
+  } catch (error) {
+    console.error("Check user failed:", error);
+    return res.status(500).json({ error: "Server error while checking user" });
+  }
+});
+
+/* To register new users */
+// TODO: app.get("/api/auth/register", requireAuth
+app.get("/api/auth/register", async (req, res) => {
+  const { uid } = req.query;
+  try {
+    // Validate UID
+    if (!uid || !/^\d{9}$/.test(uid)) {
+      return res.status(400).json({ error: "Invalid UID: Must be a 9-digit number" });
+    }
+
+    const email = req.session.user.email;
+    const User = mongoose.model('User');
+
+    // Query DB to check if UID already exists
     const exists = await User.exists({ uid });
     if (exists) {
       return res.status(400).json({ error: "UID already exists" });
     }
+
+    // Determine role based on admin emails
     const isAdmin = ADMIN_EMAILS.includes(email);
+
+    // Create new user
     const user = await User.create({
-      uid,
+      uid: parseInt(uid),
       role: isAdmin ? 'admin' : 'user',
       email,
       approved: isAdmin ? true : false
     });
-    req.session.user = { 
-      name: req.session.user?.name || 'Unknown',
+
+    // Update session with new user details
+    req.session.user = {
+      name: req.session.user.name,
       email: user.email,
-      picture: req.session.user?.picture,
+      picture: req.session.user.picture,
       uid: user.uid,
       role: user.role,
       approved: user.approved
     };
-    return res.json({ 
+
+    return res.json({
       message: "User registered successfully",
       user: {
         name: req.session.user.name,
@@ -214,40 +272,42 @@ app.post("/api/auth/register", requireAuth, async (req, res) => {
   }
 });
 
+/* ############### APPROVED DRIVER APPLICATION ################### */
+
 // Admin endpoint to approve user by UID
-app.post("/api/admin/approve-user", requireAuth, async (req, res) => {
-  const { uid } = req.body;
-  try {
-    // Check if requester is admin
-    if (!ADMIN_EMAILS.includes(req.session.email)) { 
-      return res.status(403).json({ error: "Unauthorized: Admin access required" });
-    }
+// app.post("/api/admin/approve-user", requireAuth, async (req, res) => {
+//   const { uid } = req.body;
+//   try {
+//     // Check if requester is admin
+//     if (!ADMIN_EMAILS.includes(req.session.user.email)) { 
+//       return res.status(403).json({ error: "Unauthorized: Admin access required" });
+//     }
 
-    const User = mongoose.model('User');
-    const user = await User.findOneAndUpdate(
-      { uid },
-      { $set: { approved: true } },
-      { new: true }
-    );
+//     const User = mongoose.model('User');
+//     const user = await User.findOneAndUpdate(
+//       { uid },
+//       { $set: { approved: true } },
+//       { new: true }
+//     );
 
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
+//     if (!user) {
+//       return res.status(404).json({ error: "User not found" });
+//     }
 
-    return res.json({
-      message: "User approved successfully",
-      user: {
-        uid: user.uid,
-        email: user.email,
-        role: user.role,
-        approved: user.approved
-      }
-    });
-  } catch (error) {
-    console.error("User approval failed:", error);
-    return res.status(400).json({ error: "Failed to approve user" });
-  }
-});
+//     return res.json({
+//       message: "User approved successfully",
+//       user: {
+//         uid: user.uid,
+//         email: user.email,
+//         role: user.role,
+//         approved: user.approved
+//       }
+//     });
+//   } catch (error) {
+//     console.error("User approval failed:", error);
+//     return res.status(400).json({ error: "Failed to approve user" });
+//   }
+// });
 
 // Start server
 app.listen(PORT, () => {
