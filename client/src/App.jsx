@@ -2,10 +2,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
+import VanReservation from "./pages/VanReserve";
+import VanReturn from "./pages/VanReturn";
 import Home from "./pages/Home";
-import Profile from "./pages/Profile";
 import DriverApplication from "./pages/DriverApplication";
-import DashboardScreen from "./pages/DashboardScreen";
 
 function Login() {
   const [user, setUser] = useState(null);
@@ -19,7 +19,7 @@ function Login() {
             const decoded = jwtDecode(credentialResponse.credential);
             console.log("User info:", decoded);
 
-            if (decoded.email && (decoded.email.endsWith("@g.ucla.edu") || decoded.email.endsWith("@uclacsc.org") )) {
+            if (decoded.email && (decoded.email.endsWith("@g.ucla.edu") || decoded.email.endsWith("@uclacsc.org"))) {
               setUser(decoded);
               setError("");
               fetch("http://localhost:3000/api/auth/google", {
@@ -65,12 +65,10 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/dashboard" element={<DashboardScreen />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/reserve" element={<VanReservation />} />
+        <Route path="/return" element={<VanReturn />} />
         <Route path="/app" element={<DriverApplication />} />
         <Route path="/login" element={<Login />} />
-
-
       </Routes>
     </BrowserRouter>
   );
