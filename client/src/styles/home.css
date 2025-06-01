@@ -270,7 +270,7 @@
 .contact-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 180px;
 }
 
@@ -295,7 +295,7 @@
 .contact-value {
   color: #000;
   font-weight: 600;
-  margin-top: 12px;
+  margin-top: 4px;
 }
 
 .copyright {

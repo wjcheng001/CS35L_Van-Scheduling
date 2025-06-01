@@ -1,24 +1,42 @@
-const mongoose = require('mongoose');
+// models/User.js
+const mongoose = require("mongoose");
 
-const userSchema = new mongoose.Schema({
-  uid: {
-    type: Number,
-    required: true,
-    unique: true,
-    validate: {
-      validator: num => /^\d{9}$/.test(num),
-      message: props => `Invalid uid ${props.value}`
-    }
-  },
-  role: {
-    type: String,
-    enum: ['user', 'admin'],
-    required: true
-  },
-  email: {
-    type: String,
-    required: true
-  }
-}, { versionKey: false });
+const emailRegex = /^(.*@(ucla\.edu|g\.ucla\.edu|uclacsc\.org))$/;
 
-module.exports = mongoose.model('User', userSchema);
+const userSchema = new mongoose.Schema(
+  {
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      validate: {
+        validator: (value) => emailRegex.test(value),
+        message: (props) =>
+          `${props.value} is not a valid UCLA email address. Please use your UCLA email address.`,
+      },
+    },
+    uid: {
+      type: Number,
+      required: true,
+      unique: true,
+      validate: {
+        validator: (num) => /^\d{9}$/.test(num),
+        message: (props) => `Invalid uid ${props.value}`,
+      },
+    },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["NOT_SUBMITTED", "PENDING", "APPROVED", "REJECTED"],
+      default: "NOT_SUBMITTED",
+      required: true,
+    },
+  },
+  { versionKey: false }
+);
+
+module.exports = mongoose.model("User", userSchema);

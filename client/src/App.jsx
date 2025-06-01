@@ -6,11 +6,15 @@ import VanReservation from "./pages/VanReserve";
 import Dashboard from "./pages/Dashboard";
 import VanReturn from "./pages/VanReturn";
 import Home from "./pages/Home";
+import Welcome from "./pages/Welcome";
 import DriverApplication from "./pages/DriverApplication";
+import { useNavigate } from "react-router-dom";
+import ReservationSuccess from "./pages/ReserveSuccess";
 
 function Login() {
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
+  const navigate = useNavigate(); // 👈 加上这个
 
   return (
     <div className="login-container">
@@ -23,31 +27,38 @@ function Login() {
             if (decoded.email && (decoded.email.endsWith("@g.ucla.edu") || decoded.email.endsWith("@uclacsc.org"))) {
               setUser(decoded);
               setError("");
+
               fetch("http://localhost:3000/api/auth/google", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                 },
-                credentials: "include", // Important if your backend sets an httpOnly cookie
+                credentials: "include",
                 body: JSON.stringify({ idToken: credentialResponse.credential }),
-              }).then((res) => {
-                if (!res.ok) {
-                  throw new Error("Failed to authenticate with backend");
-                }
-                return res.json();
-              }).then(data => {
-                console.log("Session established:", data);
-                // Optionally store a sessionID (only if not using httpOnly cookies)
-              }).catch((err) => {
-                console.error(err);
-                setError("Failed to login to backend");
-              });
+              })
+                .then((res) => {
+                  if (!res.ok) throw new Error("Failed to authenticate with backend");
+                  return res.json();
+                })
+                .then((data) => {
+                  console.log("Session established:", data);
+                  if (data.isNewUser) {
+                    navigate("/welcome");
+                  } else {
+                    navigate("/dashboard");
+                  }
+                })
+                .catch((err) => {
+                  console.error(err);
+                  setError("Failed to login to backend");
+                });
             } else {
               setError("Only @g.ucla.edu email addresses are allowed.");
             }
           }}
           onError={() => {
             console.log("Login Failed");
+            setError("Google login failed");
           }}
         />
       ) : (
@@ -61,6 +72,7 @@ function Login() {
   );
 }
 
+
 function App() {
   return (
     <BrowserRouter>
@@ -71,6 +83,8 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/app" element={<DriverApplication />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/welcome" element={<Welcome />} />
+        <Route path="/res-success" element={<ReservationSuccess />} />
       </Routes>
     </BrowserRouter>
   );
