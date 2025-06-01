@@ -22,9 +22,6 @@ export default function Header() {
             Dashboard
           </Link>
           <div className="nav-spacer"></div>
-          <Link to="/contact" className="nav-item">
-            Contact Us
-          </Link>
         </nav>
       </div>
     </header>
