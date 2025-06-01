@@ -1,11 +1,12 @@
 import { useNavigate } from "react-router-dom";
+import car from "../images/car.svg"
+import bg from "../images/bg.svg"
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import "../styles/home.css";
 
 export default function Home() {
   const navigate = useNavigate();
-
   return (
     <div className="home-container">
       <div className="home-content">
@@ -14,7 +15,7 @@ export default function Home() {
           <div className="hero-content">
             <div className="hero-images">
               <img
-                src="https://cdn.builder.io/api/v1/image/assets/TEMP/5111756f4f808c7155b6a155ab842593e86e0783?placeholderIfAbsent=true"
+                src={bg}
                 className="hero-main-image"
                 alt="Van illustration"
               />
@@ -22,11 +23,6 @@ export default function Home() {
             <div className="hero-text-container">
               <div className="hero-text-content">
                 <div className="hero-text-wrapper">
-                  <img
-                    src="https://cdn.builder.io/api/v1/image/assets/TEMP/194072885896dd90366ebb4deb2e23cdcad47a36?placeholderIfAbsent=true"
-                    className="hero-background-image"
-                    alt="Background pattern"
-                  />
                   <h1 className="hero-title">
                     Reserve UCLA Vans for Your Project
                   </h1>
@@ -48,7 +44,7 @@ export default function Home() {
 
         <div className="info-section">
           <img
-            src="https://cdn.builder.io/api/v1/image/assets/TEMP/3340da322d9c72bbb672cea7710b489c34478699?placeholderIfAbsent=true"
+            src={car}
             className="info-image"
             alt="Van information"
           />

@@ -1,6 +1,7 @@
 import React from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { useEffect } from "react";
 import "../styles/dashboard.css";
 
 const BookingCard = ({
@@ -78,6 +79,28 @@ const ReturnCard = ({ date, time, project, status, onReturn }) => {
 };
 
 function Dashboard() {
+  useEffect(() => {
+    async function checkSession() {
+      try {
+        const res = await fetch("/api/auth/session", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!res.ok) {
+          console.log("Not logged in");
+          return;
+        }
+
+        const data = await res.json();
+        console.log("Logged in user:", data.user);
+      } catch (err) {
+        console.error("Session check failed:", err);
+      }
+    }
+
+    checkSession();
+  }, []);
   return (
     <div className="dashboard">
       <Header />

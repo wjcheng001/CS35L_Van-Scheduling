@@ -2,13 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require("cookie-parser");
 const { OAuth2Client } = require("google-auth-library");
-const session = require("express-session"); 
+const session = require("express-session");
 const mongoose = require('mongoose');
 const secrets = require('./secrets.js');
 
 const app = express();
 const PORT = 3000;
-const client = new OAuth2Client(secrets.CLIENT_ID); 
+const client = new OAuth2Client(secrets.CLIENT_ID);
 
 const ADMIN_EMAILS = ['transportation@uclacsc.org', 'wanjun01@g.ucla.edu'];
 
@@ -162,8 +162,16 @@ app.post("/api/auth/google", async (req, res) => {
 });
 
 // Check if logged in (session is active)
-app.get("/api/auth/session", requireAuth, (req, res) => { 
-  res.json({ user: req.session.user });
+app.get("/api/auth/session", (req, res) => {
+  try {
+    if (!req.session?.user) {
+      return res.status(401).json({ error: "Not logged in" });
+    }
+    return res.json({ user: req.session.user });
+  } catch (err) {
+    console.error("Error in /api/auth/session:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
 // Logout
@@ -180,17 +188,17 @@ app.post("/api/auth/logout", (req, res) => {
 
 
 
-  /* 
-  Workflow for API calls
+/* 
+Workflow for API calls
 
-  * data/get (get userData)
-  |\ 
-  | * auth/register (if no user)
-  |/
-  * auth/checkUser 
-  * auth/google (login)
+* data/get (get userData)
+|\ 
+| * auth/register (if no user)
+|/
+* auth/checkUser 
+* auth/google (login)
 
-  */
+*/
 
 
 // TODO get info based on user gmail
@@ -206,10 +214,10 @@ app.get("/api/data/get", async (req, res) => {
 /* Verify if the login is from a new user */
 // TODO: app.post("/api/auth/checkUser", requireAuth, async
 app.post("/api/auth/checkUser", async (req, res) => {
-try {    
-  const email = req.session.user.email;
+  try {
+    const email = req.session.user.email;
     const User = mongoose.model('User');
-    
+
     // Query email in DB
     const user = await User.findOne({ email });
 

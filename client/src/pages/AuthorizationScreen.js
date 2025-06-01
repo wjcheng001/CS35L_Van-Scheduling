@@ -14,7 +14,7 @@ export default function AuthScreen({ navigation, route }) {
 
   const handleSignUp = async () => {
     setError('');
-    
+
     if (!validateEmail(email)) {
       setError('Please enter a valid email address');
       return;
@@ -43,7 +43,7 @@ export default function AuthScreen({ navigation, route }) {
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.form}>
         <Text variant="headlineMedium" style={styles.title}>Create Account</Text>
-        
+
         <TextInput
           label="Email"
           value={email}
@@ -114,4 +114,7 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 8,
   },
-}); 
+});
+
+
+
