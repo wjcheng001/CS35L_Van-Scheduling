@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Footer from "../components/Footer";
+import Header from "../components/Header";
 
 const VanReservation = () => {
   const navigate = useNavigate();
@@ -35,20 +37,7 @@ const VanReservation = () => {
   return (
     <div className="bg-white overflow-hidden">
       <div className="flex w-full flex-col items-stretch">
-        {/* Header */}
-        <header className="flex items-center justify-between px-8 py-4 border-b border-gray-200">
-          <div className="flex items-center">
-            <img src="/car-icon.svg" alt="CSC Transportation" className="h-8 w-8 mr-2" />
-            <span className="font-bold">CSC Transportation</span>
-          </div>
-          <nav className="flex space-x-6">
-            <a href="#" className="hover:text-[#5937E0]">Home</a>
-            <a href="#" className="hover:text-[#5937E0]">Resources</a>
-            <a href="#" className="hover:text-[#5937E0]">Dashboard</a>
-            <a href="#" className="hover:text-[#5937E0]">Van Schedule</a>
-            <a href="#" className="hover:text-[#5937E0]">Contact Us</a>
-          </nav>
-        </header>
+        <Header />
 
         <h1 className="text-[#5937E0] text-[50px] font-work-sans font-bold self-start mt-[51px] ml-[156px] md:text-[40px] md:mt-10">
           Reserve a Van
@@ -227,38 +216,7 @@ const VanReservation = () => {
           </button>
         </form>
 
-        {/* Footer */}
-        <footer className="mt-16 pb-8">
-          <div className="flex justify-between items-center max-w-[1114px] mx-auto px-8">
-            <div className="flex items-center">
-              <img src="/van-icon.svg" alt="CSC Transportation" className="h-12 w-12 mr-2" />
-              <span className="font-bold">CSC Transportation</span>
-            </div>
-            <div className="flex items-center">
-              <div className="flex items-center mr-8">
-                <div className="bg-[#FFC107] rounded-full p-2 mr-2">
-                  <img src="/email-icon.svg" alt="Email" className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm">Email</div>
-                  <div className="text-sm font-semibold">transportation@uclacsc.org</div>
-                </div>
-              </div>
-              <div className="flex items-center">
-                <div className="bg-[#FFC107] rounded-full p-2 mr-2">
-                  <img src="/phone-icon.svg" alt="Phone" className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm">Director's Phone</div>
-                  <div className="text-sm font-semibold">(510) 828 7036</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="text-center text-sm text-gray-500 mt-4">
-            © Copyright Car Rental 2024. Design by Figma.guru
-          </div>
-        </footer>
+        <Footer />
       </div>
     </div>
   );
@@ -288,7 +246,7 @@ export const ReservationSuccess = () => {
         <div className="flex flex-col items-center justify-center flex-grow py-20">
           <div className="bg-[#5937E0] rounded-full p-6 mb-6">
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5 12L10 17L20 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M5 12L10 17L20 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
           <h1 className="text-[#5937E0] text-4xl font-bold mb-8">SUBMITTED!</h1>

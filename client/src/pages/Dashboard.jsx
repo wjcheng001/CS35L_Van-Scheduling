@@ -1,24 +1,14 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { useEffect } from "react";
 import "../styles/dashboard.css";
 
-const BookingCard = ({
-  date,
-  time,
-  project,
-  vanNumber,
-  status,
-  onCancel,
-  onPickup,
-}) => {
+const BookingCard = ({ date, time, project, vanNumber, status, onCancel, onPickup }) => {
   return (
     <div className="booking-card">
       <div className="booking-info">
-        <div>
-          Date: <span>{date}</span>
-        </div>
+        <div>Date: <span>{date}</span></div>
         <div>Time: {time}</div>
       </div>
       <div className="project-info">
@@ -37,12 +27,8 @@ const BookingCard = ({
       <div className="status-text">{status}</div>
       {status === "Confirmed" && (
         <div className="action-buttons">
-          <button className="cancel-btn" onClick={onCancel}>
-            cancel
-          </button>
-          <button className="pickup-btn" onClick={onPickup}>
-            pick up
-          </button>
+          <button className="cancel-btn" onClick={onCancel}>cancel</button>
+          <button className="pickup-btn" onClick={onPickup}>pick up</button>
         </div>
       )}
     </div>
@@ -53,9 +39,7 @@ const ReturnCard = ({ date, time, project, status, onReturn }) => {
   return (
     <div className="return-card">
       <div className="return-info">
-        <div>
-          Date: <span>{date}</span>
-        </div>
+        <div>Date: <span>{date}</span></div>
         <div>Time: {time}</div>
       </div>
       <div className="project-info">Project: {project}</div>
@@ -70,15 +54,16 @@ const ReturnCard = ({ date, time, project, status, onReturn }) => {
       />
       <div className="status-text">{status}</div>
       {status === "Unreturned" && (
-        <button className="return-btn" onClick={onReturn}>
-          return
-        </button>
+        <button className="return-btn" onClick={onReturn}>return</button>
       )}
     </div>
   );
 };
 
 function Dashboard() {
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+
   useEffect(() => {
     async function checkSession() {
       try {
@@ -89,23 +74,30 @@ function Dashboard() {
 
         if (!res.ok) {
           console.log("Not logged in");
+          navigate("/"); // 👈 redirect to Home if not logged in
           return;
         }
 
         const data = await res.json();
+        setUser(data.user); // 👈 save user info
         console.log("Logged in user:", data.user);
       } catch (err) {
         console.error("Session check failed:", err);
+        navigate("/");
       }
     }
 
     checkSession();
-  }, []);
+  }, [navigate]);
+
   return (
     <div className="dashboard">
       <Header />
       <div className="dashboard-content">
-        <h1 className="welcome-title">Welcome!</h1>
+        <h1 className="welcome-title">
+          Welcome{user ? `, ${user.name}` : ""}!
+        </h1>
+
         <div className="status-container">
           <div className="status-badge">Approved!</div>
           <div className="status-message">
@@ -125,43 +117,16 @@ function Dashboard() {
             onCancel={() => { }}
             onPickup={() => { }}
           />
-          <BookingCard
-            date="5/15"
-            time="7pm - 10pm"
-            project="CSSA Prom"
-            status="Pending"
-          />
-          <BookingCard
-            date="5/15"
-            time="7pm - 10pm"
-            project="CSSA Prom"
-            status="Rejected"
-          />
+          <BookingCard date="5/15" time="7pm - 10pm" project="CSSA Prom" status="Pending" />
+          <BookingCard date="5/15" time="7pm - 10pm" project="CSSA Prom" status="Rejected" />
           <div className="see-more">See More</div>
         </div>
 
         <h2 className="section-title">Van Return</h2>
         <div className="returns-container">
-          <ReturnCard
-            date="5/15"
-            time="7pm - 10pm"
-            project="CSSA Prom"
-            status="Returned"
-          />
-          <ReturnCard
-            date="5/15"
-            time="7pm - 10pm"
-            project="CSSA Prom"
-            status="Unreturned"
-            onReturn={() => { }}
-          />
-          <ReturnCard
-            date="5/15"
-            time="7pm - 10pm"
-            project="CSSA Prom"
-            status="Unreturned"
-            onReturn={() => { }}
-          />
+          <ReturnCard date="5/15" time="7pm - 10pm" project="CSSA Prom" status="Returned" />
+          <ReturnCard date="5/15" time="7pm - 10pm" project="CSSA Prom" status="Unreturned" onReturn={() => { }} />
+          <ReturnCard date="5/15" time="7pm - 10pm" project="CSSA Prom" status="Unreturned" onReturn={() => { }} />
           <div className="see-more">See More</div>
         </div>
       </div>
