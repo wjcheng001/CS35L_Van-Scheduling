@@ -6,8 +6,10 @@ import VanReservation from "./pages/VanReserve";
 import Dashboard from "./pages/Dashboard";
 import VanReturn from "./pages/VanReturn";
 import Home from "./pages/Home";
+import Welcome from "./pages/Welcome";
 import DriverApplication from "./pages/DriverApplication";
 import { useNavigate } from "react-router-dom";
+import ReservationSuccess from "./pages/ReserveSuccess";
 
 function Login() {
   const [user, setUser] = useState(null);
@@ -40,9 +42,8 @@ function Login() {
                 })
                 .then((data) => {
                   console.log("Session established:", data);
-                  // 👇 如果你有返回是否新用户的字段，可按需跳转
                   if (data.isNewUser) {
-                    // navigate("/onboarding");
+                    navigate("/welcome");
                   } else {
                     navigate("/dashboard");
                   }
@@ -82,6 +83,8 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/app" element={<DriverApplication />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/welcome" element={<Welcome />} />
+        <Route path="/res-success" element={<ReservationSuccess />} />
       </Routes>
     </BrowserRouter>
   );
