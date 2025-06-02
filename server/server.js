@@ -351,3 +351,128 @@ app.get("/api/returns", requireAuth, async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
+
+// Search endpoint for bookings
+app.get("/api/bookings/search", requireAuth, async (req, res) => {
+  try {
+    const userEmail = req.session.user.email;
+    const { query, startDate, endDate, vanId } = req.query;
+    
+    // Build search filter
+    const filter = { userEmail }; // Base filter - only show user's own bookings
+    
+    // Add text search if query parameter exists
+    if (query && query.trim() !== '') {
+      // Search in project name, site name, or trip purpose
+      filter.$or = [
+        { projectName: { $regex: query, $options: 'i' } },
+        { siteName: { $regex: query, $options: 'i' } },
+        { tripPurpose: { $regex: query, $options: 'i' } }
+      ];
+    }
+    
+    // Add date range filter if provided
+    if (startDate || endDate) {
+      filter.pickupDate = {};
+      if (startDate) filter.pickupDate.$gte = new Date(startDate);
+      if (endDate) filter.pickupDate.$lte = new Date(endDate);
+    }
+    
+    // Add van ID filter if provided
+    if (vanId) {
+      filter.vanId = vanId;
+    }
+    
+    // Execute query with pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    const bookings = await mongoose.model('Booking')
+      .find(filter)
+      .sort({ pickupDate: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+    
+    // Get total count for pagination
+    const total = await mongoose.model('Booking').countDocuments(filter);
+    
+    return res.json({
+      bookings,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        limit
+      }
+    });
+  } catch (err) {
+    console.error("Error in /api/bookings/search:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Admin version of search endpoint (can see all bookings)
+app.get("/api/admin/bookings/search", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { query, startDate, endDate, vanId, userEmail } = req.query;
+    
+    // Build search filter - admins can see all bookings
+    const filter = {};
+    
+    // Add text search if query parameter exists
+    if (query && query.trim() !== '') {
+      filter.$or = [
+        { projectName: { $regex: query, $options: 'i' } },
+        { siteName: { $regex: query, $options: 'i' } },
+        { tripPurpose: { $regex: query, $options: 'i' } }
+      ];
+    }
+    
+    // Add date range filter if provided
+    if (startDate || endDate) {
+      filter.pickupDate = {};
+      if (startDate) filter.pickupDate.$gte = new Date(startDate);
+      if (endDate) filter.pickupDate.$lte = new Date(endDate);
+    }
+    
+    // Add van ID filter if provided
+    if (vanId) {
+      filter.vanId = vanId;
+    }
+    
+    // Add user email filter if provided (admin can filter by specific user)
+    if (userEmail) {
+      filter.userEmail = userEmail;
+    }
+    
+    // Execute query with pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    const bookings = await mongoose.model('Booking')
+      .find(filter)
+      .sort({ pickupDate: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+    
+    // Get total count for pagination
+    const total = await mongoose.model('Booking').countDocuments(filter);
+    
+    return res.json({
+      bookings,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        limit
+      }
+    });
+  } catch (err) {
+    console.error("Error in /api/admin/bookings/search:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
