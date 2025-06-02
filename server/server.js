@@ -167,7 +167,20 @@ app.post("/api/auth/google", async (req, res) => {
       picture: payload.picture,
     };
 
-    return res.json({ message: "Login successful" });
+    const User = mongoose.model('User');
+    const email = req.session.user.email;
+
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = await User.create({
+        email: payload.email,
+        uid: 0, 
+        role: ADMIN_EMAILS.includes(email) ? "admin" : "user",
+        status: "NOT_SUBMITTED",
+      });
+    }
+
+    return res.json({ isNewUser: user.uid === 0, message: "Login successful" }); // TODO: implement isNewUser logic
   } catch (error) {
     console.error("Token verification failed:", error);
     return res.status(401).json({ error: "Invalid token" });
@@ -185,6 +198,20 @@ app.post("/api/auth/logout", (req, res) => {
     res.clearCookie("connect.sid");
     res.json({ message: "Logged out" });
   });
+});
+
+/* Added APIs to get frontend to work */
+// Status endpoint requested by Dashboard.jsx
+app.get("/api/auth/status", requireAuth, async (req, res) => {
+  const User = mongoose.model('User');
+
+  const email = req.session.user.email;
+
+  let user = await User.findOne({email});
+    
+  res.json({
+      status: user.status,
+    });
 });
 
 /* ########################
@@ -237,8 +264,8 @@ app.post("/api/auth/checkUser", async (req, res) => {
 });
 
 /* To register new users */
-app.get("/api/auth/register", async (req, res) => {
-  const { uid } = req.query;
+app.post("/api/auth/register", async (req, res) => {
+  const { uid } = req.body;
   try {
     // Validate UID
     if (!uid || !/^\d{9}$/.test(uid)) {
@@ -258,12 +285,16 @@ app.get("/api/auth/register", async (req, res) => {
     const isAdmin = ADMIN_EMAILS.includes(email);
 
     // Create new user
-    const user = await User.create({
-      uid: parseInt(uid),
-      role: isAdmin ? 'admin' : 'user',
-      email,
-      status: isAdmin ? 'APPROVED' : 'PENDING'
-    });
+    let user = await User.findOne({ email });
+    user.uid =  parseInt(uid);
+    user.status = 'NOT_SUBMITTED'
+    
+    // const user = await User.findOne({
+    //   uid: parseInt(uid),
+    //   role: isAdmin ? 'admin' : 'user',
+    //   email,
+    //   status: isAdmin ? 'APPROVED' : 'NOT_SUBMITTED'
+    // });
 
     // Update session with new user details
     req.session.user = {
@@ -284,39 +315,9 @@ app.get("/api/auth/register", async (req, res) => {
   }
 });
 
-/* ############### APPROVED DRIVER APPLICATION ################### */
+// /* ############### APPROVED DRIVER APPLICATION ################### */
 
-// Admin endpoint to approve user by UID
-// app.post("/api/admin/approve-user", requireAuth, requireAdmin, async (req, res) => {
-//   const { uid } = req.body;
-//   try {
-//     const User = mongoose.model('User');
-//     const user = await User.findOneAndUpdate(
-//       { uid },
-//       { $set: { status: "APPROVED" } },
-//       { new: true }
-//     );
-
-//     if (!user) {
-//       return res.status(404).json({ error: "User not found" });
-//     }
-
-//     return res.json({
-//       message: "User approved successfully",
-//       user: {
-//         uid: user.uid,
-//         email: user.email,
-//         role: user.role,
-//         status: user.status
-//       }
-//     });
-//   } catch (error) {
-//     console.error("User approval failed:", error);
-//     return res.status(400).json({ error: "Failed to approve user" });
-//   }
-// });
-
-/* “New works” routes: bookings + returns */
+// /* “New works” routes: bookings + returns */
 
 // GET /api/bookings → return all bookings for the logged‐in user
 app.get("/api/bookings", requireAuth, async (req, res) => {
@@ -330,149 +331,26 @@ app.get("/api/bookings", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/admin/bookings/:id/status → placeholder for admin to update booking
-app.post("/api/admin/bookings/:id/status", requireAuth, requireAdmin, async (req, res) => {
-  return res.status(501).json({ error: "Not implemented" });
-});
+// // POST /api/admin/bookings/:id/status → placeholder for admin to update booking
+// app.post("/api/admin/bookings/:id/status", requireAuth, requireAdmin, async (req, res) => {
+//   return res.status(501).json({ error: "Not implemented" });
+// });
 
-// GET /api/returns → return all “van returns” for the logged‐in user
-app.get("/api/returns", requireAuth, async (req, res) => {
-  try {
-    const userEmail = req.session.user.email;
-    const returns = await mongoose.model('Return').find({ userEmail }).sort({ pickupDate: -1 }).lean();
-    return res.json({ returns });
-  } catch (err) {
-    console.error("Error in /api/returns:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
+// // GET /api/returns → return all “van returns” for the logged‐in user
+// app.get("/api/returns", requireAuth, async (req, res) => {
+//   try {
+//     const userEmail = req.session.user.email;
+//     const returns = await mongoose.model('Return').find({ userEmail }).sort({ pickupDate: -1 }).lean();
+//     return res.json({ returns });
+//   } catch (err) {
+//     console.error("Error in /api/returns:", err);
+//     return res.status(500).json({ error: "Server error" });
+//   }
+// });
 
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
 
-// Search endpoint for bookings
-app.get("/api/bookings/search", requireAuth, async (req, res) => {
-  try {
-    const userEmail = req.session.user.email;
-    const { query, startDate, endDate, vanId } = req.query;
-    
-    // Build search filter
-    const filter = { userEmail }; // Base filter - only show user's own bookings
-    
-    // Add text search if query parameter exists
-    if (query && query.trim() !== '') {
-      // Search in project name, site name, or trip purpose
-      filter.$or = [
-        { projectName: { $regex: query, $options: 'i' } },
-        { siteName: { $regex: query, $options: 'i' } },
-        { tripPurpose: { $regex: query, $options: 'i' } }
-      ];
-    }
-    
-    // Add date range filter if provided
-    if (startDate || endDate) {
-      filter.pickupDate = {};
-      if (startDate) filter.pickupDate.$gte = new Date(startDate);
-      if (endDate) filter.pickupDate.$lte = new Date(endDate);
-    }
-    
-    // Add van ID filter if provided
-    if (vanId) {
-      filter.vanId = vanId;
-    }
-    
-    // Execute query with pagination
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-    
-    const bookings = await mongoose.model('Booking')
-      .find(filter)
-      .sort({ pickupDate: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-    
-    // Get total count for pagination
-    const total = await mongoose.model('Booking').countDocuments(filter);
-    
-    return res.json({
-      bookings,
-      pagination: {
-        total,
-        page,
-        pages: Math.ceil(total / limit),
-        limit
-      }
-    });
-  } catch (err) {
-    console.error("Error in /api/bookings/search:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
 
-// Admin version of search endpoint (can see all bookings)
-app.get("/api/admin/bookings/search", requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const { query, startDate, endDate, vanId, userEmail } = req.query;
-    
-    // Build search filter - admins can see all bookings
-    const filter = {};
-    
-    // Add text search if query parameter exists
-    if (query && query.trim() !== '') {
-      filter.$or = [
-        { projectName: { $regex: query, $options: 'i' } },
-        { siteName: { $regex: query, $options: 'i' } },
-        { tripPurpose: { $regex: query, $options: 'i' } }
-      ];
-    }
-    
-    // Add date range filter if provided
-    if (startDate || endDate) {
-      filter.pickupDate = {};
-      if (startDate) filter.pickupDate.$gte = new Date(startDate);
-      if (endDate) filter.pickupDate.$lte = new Date(endDate);
-    }
-    
-    // Add van ID filter if provided
-    if (vanId) {
-      filter.vanId = vanId;
-    }
-    
-    // Add user email filter if provided (admin can filter by specific user)
-    if (userEmail) {
-      filter.userEmail = userEmail;
-    }
-    
-    // Execute query with pagination
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-    
-    const bookings = await mongoose.model('Booking')
-      .find(filter)
-      .sort({ pickupDate: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-    
-    // Get total count for pagination
-    const total = await mongoose.model('Booking').countDocuments(filter);
-    
-    return res.json({
-      bookings,
-      pagination: {
-        total,
-        page,
-        pages: Math.ceil(total / limit),
-        limit
-      }
-    });
-  } catch (err) {
-    console.error("Error in /api/admin/bookings/search:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
