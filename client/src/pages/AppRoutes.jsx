@@ -8,6 +8,7 @@ import Dashboard from './DashboardScreen';
 import Profile from './Profile';
 import DriverApplication from './DriverApplication';
 import Login from './Login';
+import SearchPage from './SearchPage'; // Add this import
 
 const AppRoutes = () => {
   return (
@@ -29,6 +30,9 @@ const AppRoutes = () => {
         
         {/* Van pick-up route (if needed in the future) */}
         <Route path="/pickup" element={<VanPickUp />} />
+        
+        {/* Search route */}
+        <Route path="/search" element={<SearchPage />} />
         
         {/* Redirect any unknown routes to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
