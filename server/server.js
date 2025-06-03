@@ -48,9 +48,6 @@ const requireAuth = (req, res, next) => {
 
 // 2) requireAdmin middleware
 const requireAdmin = (req, res, next) => {
-  if (!req.session.user) {
-    return res.status(401).json({ error: "Not logged in" });
-  }
   if (!ADMIN_EMAILS.includes(req.session.user.email)) {
     return res.status(403).json({ error: "Admin access required" });
   }
@@ -231,7 +228,32 @@ app.post("/api/admin/bookings/:id/status", requireAuth, requireAdmin, async (req
 });
 
 // -----------------------------------------------------------
-// 12) Connect to MongoDB & start Express
+// 12) POST /api/admin/approve-user
+// -----------------------------------------------------------
+app.post("/api/admin/approve-user", requireAuth, requireAdmin, async (req, res) => {
+  const { uid } = req.body;
+  try {
+    const User = mongoose.model('User');
+    const user = await User.findOneAndUpdate(
+      { uid },
+      { $set: { status: "APPROVED" } },
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.json({
+      message: "User approved successfully",
+    });
+  } catch (error) {
+    console.error("User approval failed:", error);
+    return res.status(500).json({ error: "Failed to approve user" });
+  }
+});
+
+// -----------------------------------------------------------
+// 13) Connect to MongoDB & start Express
 // -----------------------------------------------------------
 mongoose
   .connect(process.env.MONGO_URI || "mongodb://localhost:27017/35ldb", {
