@@ -336,17 +336,17 @@ app.get("/api/bookings", requireAuth, async (req, res) => {
 //   return res.status(501).json({ error: "Not implemented" });
 // });
 
-// // GET /api/returns → return all “van returns” for the logged‐in user
-// app.get("/api/returns", requireAuth, async (req, res) => {
-//   try {
-//     const userEmail = req.session.user.email;
-//     const returns = await mongoose.model('Return').find({ userEmail }).sort({ pickupDate: -1 }).lean();
-//     return res.json({ returns });
-//   } catch (err) {
-//     console.error("Error in /api/returns:", err);
-//     return res.status(500).json({ error: "Server error" });
-//   }
-// });
+// GET /api/returns → return all “van returns” for the logged‐in user
+app.get("/api/returns", requireAuth, async (req, res) => {
+  try {
+    const userEmail = req.session.user.email;
+    const returns = await mongoose.model('Return').find({ userEmail }).sort({ pickupDate: -1 }).lean();
+    return res.json({ returns });
+  } catch (err) {
+    console.error("Error in /api/returns:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
 
 // Start server
 app.listen(PORT, () => {
