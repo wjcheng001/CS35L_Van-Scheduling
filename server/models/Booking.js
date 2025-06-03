@@ -51,11 +51,6 @@ const bookingSchema = new mongoose.Schema(
       enum: ["PENDING", "CONFIRMED", "REJECTED"],
       default: "PENDING"
     },
-    // If you want to compute/display an automatic credit cost:
-    creditCost: {
-      type: Number,
-      default: 0
-    }
   },
   { timestamps: true }
 );

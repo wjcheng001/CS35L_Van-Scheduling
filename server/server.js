@@ -1,4 +1,3 @@
-// server.js
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -7,6 +6,7 @@ const session = require("express-session");
 const mongoose = require("mongoose");
 const { OAuth2Client } = require("google-auth-library");
 const User = require("./models/User");
+const Booking = require("./models/Booking");
 const Return = require("./models/Return"); // ← Import the Return model
 const secrets = require("./secrets.js");
 
@@ -48,6 +48,9 @@ const requireAuth = (req, res, next) => {
 
 // 2) requireAdmin middleware
 const requireAdmin = (req, res, next) => {
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Not logged in" });
+  }
   if (!ADMIN_EMAILS.includes(req.session.user.email)) {
     return res.status(403).json({ error: "Admin access required" });
   }
@@ -135,7 +138,7 @@ app.get("/api/auth/status", requireAuth, async (req, res) => {
 });
 
 // -----------------------------------------------------------
-// 6) POST /api/auth/register → user submits UID
+// 6) POST /api/auth/register → user submits UID, set status = "NOT_SUBMITTED"
 // -----------------------------------------------------------
 app.post("/api/auth/register", requireAuth, async (req, res) => {
   const { uid } = req.body;
@@ -145,15 +148,15 @@ app.post("/api/auth/register", requireAuth, async (req, res) => {
   try {
     const email = req.session.user.email;
     const user = await User.findOne({ email });
-    if (!user || user.uid !== 0) {
+    if (!user || user.status !== "NOT_SUBMITTED") {
       return res
         .status(400)
         .json({ error: "Already applied or user missing" });
     }
     user.uid = Number(uid);
-    
+    user.status = "PENDING";
     await user.save();
-    return res.json({ message: "UID Updated" });
+    return res.json({ message: "Driver application submitted", status: "PENDING" });
   } catch (err) {
     console.error("Registration error:", err);
     return res.status(500).json({ error: "Server error" });
@@ -196,14 +199,24 @@ app.post("/api/auth/logout", (req, res) => {
 // 9) GET /api/bookings (placeholder) → return user’s bookings
 // -----------------------------------------------------------
 app.get("/api/bookings", requireAuth, async (req, res) => {
-  // Example: if you had a Booking model, you’d do:
-  // const Booking = require("./models/Booking");
-  // const userEmail = req.session.user.email;
-  // const bookings = await Booking.find({ userEmail }).lean();
-  // return res.json({ bookings });
+  try {
+    const userEmail = req.session.user.email;
+    console.log(userEmail);
+    // 1) Fetch all bookings for this user, newest first
+    const bookings = await Booking.find({ userEmail })
+      .sort({ createdAt: -1 })
+      .lean();
+    // 2) Determine if any booking is still “active” (PENDING or CONFIRMED)
+    const hasActive = bookings.some(b =>
+      ["PENDING", "CONFIRMED"].includes(b.status)
+    );
 
-  // For now, return an empty array:
-  return res.json({ bookings: [] });
+    // 3) Return the array + hasActive boolean
+    return res.json({ bookings, hasActive });
+  } catch (err) {
+    console.error("Error in GET /api/bookings:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
 });
 
 // -----------------------------------------------------------
@@ -228,32 +241,7 @@ app.post("/api/admin/bookings/:id/status", requireAuth, requireAdmin, async (req
 });
 
 // -----------------------------------------------------------
-// 12) POST /api/admin/approve-user
-// -----------------------------------------------------------
-app.post("/api/admin/approve-user", requireAuth, requireAdmin, async (req, res) => {
-  const { uid } = req.body;
-  try {
-    const User = mongoose.model('User');
-    const user = await User.findOneAndUpdate(
-      { uid },
-      { $set: { status: "APPROVED" } },
-    );
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    return res.json({
-      message: "User approved successfully",
-    });
-  } catch (error) {
-    console.error("User approval failed:", error);
-    return res.status(500).json({ error: "Failed to approve user" });
-  }
-});
-
-// -----------------------------------------------------------
-// 13) Connect to MongoDB & start Express
+// 12) Connect to MongoDB & start Express
 // -----------------------------------------------------------
 mongoose
   .connect(process.env.MONGO_URI || "mongodb://localhost:27017/35ldb", {
