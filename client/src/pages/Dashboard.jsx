@@ -1,11 +1,10 @@
-// src/pages/Dashboard.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import StatusBanner from "../components/StatusBanner";
 import AdminApproveButton from "../components/AdminApproveButton";
-
+import axios from "axios";
 
 // ------------ BookingCard -------------
 function BookingCard({ booking, onCancel, onPickup }) {
@@ -127,66 +126,76 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [status, setStatus] = useState(null);
   const [bookings, setBookings] = useState([]);
-  const [returns, setReturns] = useState([]); // ← Declare `returns` state
+  const [returns, setReturns] = useState([]);
+  const [pendingUsers, setPendingUsers] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     async function fetchData() {
       try {
-        // 1) Check session
-        const sessionRes = await fetch("http://localhost:3000/api/auth/session", {
-          credentials: "include",
-        });
-        if (!sessionRes.ok) {
-          navigate("/login");
-          return;
-        }
+        const sessionRes = await fetch("http://localhost:3000/api/auth/session", { credentials: "include" });
+        if (!sessionRes.ok) return navigate("/login");
         const sessionData = await sessionRes.json();
         setUser(sessionData.user);
 
-        // 2) Fetch user.status
-        const statusRes = await fetch("http://localhost:3000/api/auth/status", {
-          credentials: "include",
-        });
-        if (!statusRes.ok) {
-          console.error("Failed to get user status");
-          navigate("/login");
-          return;
-        }
+        const statusRes = await fetch("http://localhost:3000/api/auth/status", { credentials: "include" });
+        if (!statusRes.ok) return navigate("/login");
         const statusData = await statusRes.json();
         setStatus(statusData.status);
 
-        // 3) Fetch bookings
-        const bookingsRes = await fetch("http://localhost:3000/api/bookings", {
-          credentials: "include",
-        });
+        const bookingsRes = await fetch("http://localhost:3000/api/bookings", { credentials: "include" });
         if (bookingsRes.ok) {
           const bookingsJson = await bookingsRes.json();
           setBookings(bookingsJson.bookings || []);
-        } else {
-          console.error("Could not fetch bookings");
         }
 
-        // 4) Fetch returns
-        const returnsRes = await fetch("http://localhost:3000/api/returns", {
-          credentials: "include",
-        });
+        const returnsRes = await fetch("http://localhost:3000/api/returns", { credentials: "include" });
         if (returnsRes.ok) {
           const returnsJson = await returnsRes.json();
           setReturns(returnsJson.returns || []);
-        } else {
-          console.error("Could not fetch returns");
+        }
+
+        const pendingRes = await fetch("http://localhost:3000/api/admin/pending-users", { credentials: "include" });
+        if (pendingRes.ok) {
+          const users = await pendingRes.json();
+          setPendingUsers(users);
         }
       } catch (err) {
-        console.error("Error in Dashboard.fetchData:", err);
+        console.error("Error fetching dashboard data:", err);
         navigate("/login");
       }
     }
-
     fetchData();
   }, [navigate]);
 
-  //  Show “Loading…” until `status` is non-null:
+  const handleApprove = async (uid) => {
+    try {
+      const res = await axios.post(
+        "http://localhost:3000/api/admin/approve-user",
+        { uid },
+        { withCredentials: true }
+      );
+      alert(res.data.message);
+      setPendingUsers(pendingUsers.filter((u) => u.uid !== uid));
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to approve user");
+    }
+  };
+
+  const handleReject = async (uid) => {
+    try {
+      const res = await axios.post(
+        "http://localhost:3000/api/admin/reject-user",
+        { uid },
+        { withCredentials: true }
+      );
+      alert(res.data.message);
+      setPendingUsers(pendingUsers.filter((u) => u.uid !== uid));
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to reject user");
+    }
+  };
+
   if (status === null) {
     return (
       <div className="flex flex-col min-h-screen bg-gray-50">
@@ -199,72 +208,41 @@ export default function Dashboard() {
     );
   }
 
-  //  Handlers for cancel / pick‐up (stubs for demonstration)
-  const handleCancel = async (bookingId) => {
-    try {
-      const res = await fetch(
-        `http://localhost:3000/api/admin/bookings/${bookingId}/status`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ status: "REJECTED" }),
-        }
-      );
-      if (res.ok) {
-        const updated = await res.json();
-        setBookings((prev) =>
-          prev.map((b) => (b._id === bookingId ? updated.booking : b))
-        );
-      } else {
-        console.error("Cancel failed");
-      }
-    } catch (err) {
-      console.error("Error canceling booking:", err);
-    }
-  };
-
-  const handlePickup = async (bookingId) => {
-    try {
-      const res = await fetch(
-        `http://localhost:3000/api/admin/bookings/${bookingId}/status`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ status: "CONFIRMED" }),
-        }
-      );
-      if (res.ok) {
-        const updated = await res.json();
-        setBookings((prev) =>
-          prev.map((b) => (b._id === bookingId ? updated.booking : b))
-        );
-      } else {
-        console.error("Pick Up failed");
-      }
-    } catch (err) {
-      console.error("Error picking up booking:", err);
-    }
-  };
-
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Header />
-
       <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome + subtitle */}
         <h1 className="text-4xl font-extrabold text-purple-600 mb-2">
           Welcome{user ? `, ${user.name}` : ""}!
         </h1>
         <p className="text-gray-500 mb-6">Here’s your driver application status.</p>
 
-        {/* StatusBanner */}
         <div className="mb-8">
           <StatusBanner status={status} />
         </div>
 
-        {/* My Bookings */}
+        {/* Admin Tools */}
+        {user?.role === "admin" && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Admin Tools</h2>
+            <AdminApproveButton />
+
+            <h3 className="text-lg font-semibold text-gray-700 mt-6 mb-2">Pending Users</h3>
+            <ul className="space-y-2">
+              {pendingUsers.map((u) => (
+                <li key={u.uid} className="border rounded p-3 flex justify-between items-center">
+                  <span>{u.email} ({u.uid})</span>
+                  <div className="space-x-2">
+                    <button onClick={() => handleApprove(u.uid)} className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">Approve</button>
+                    <button onClick={() => handleReject(u.uid)} className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600">Reject</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Bookings */}
         <h2 className="text-2xl font-bold text-gray-800 mb-4">My Bookings</h2>
         {bookings.length === 0 ? (
           <p className="text-gray-600">You haven’t made any bookings yet.</p>
@@ -272,18 +250,13 @@ export default function Dashboard() {
           <div className="flex flex-wrap -mx-2 mb-8">
             {bookings.map((b) => (
               <div key={b._id} className="px-2 mb-6 w-full md:w-1/2 lg:w-1/3">
-                <BookingCard booking={b} onCancel={handleCancel} onPickup={handlePickup} />
+                <BookingCard booking={b} onCancel={() => {}} onPickup={() => {}} />
               </div>
             ))}
-            <div className="px-2 w-full">
-              <div className="text-center text-purple-600 font-semibold cursor-pointer hover:underline">
-                See More
-              </div>
-            </div>
           </div>
         )}
 
-        {/* Van Return Section */}
+        {/* Van Return */}
         <h2 className="text-2xl font-bold text-gray-800 mb-4">Van Return</h2>
         {returns.length === 0 ? (
           <p className="text-gray-600">No van returns to display.</p>
@@ -294,16 +267,11 @@ export default function Dashboard() {
                 <ReturnCard ret={ret} />
               </div>
             ))}
-            <div className="px-2 w-full">
-              <div className="text-center text-purple-600 font-semibold cursor-pointer hover:underline">
-                See More
-              </div>
-            </div>
           </div>
         )}
       </main>
-
       <Footer />
     </div>
   );
 }
+
