@@ -1,62 +1,151 @@
-// server.js
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
+const express = require('express');
+const cors = require('cors');
 const cookieParser = require("cookie-parser");
-const session = require("express-session");
-const mongoose = require("mongoose");
 const { OAuth2Client } = require("google-auth-library");
-const User = require("./models/User");
-const Return = require("./models/Return"); // ← Import the Return model
-const secrets = require("./secrets.js");
+const session = require("express-session");
+const mongoose = require('mongoose');
+const secrets = require('./secrets.js');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 const client = new OAuth2Client(secrets.CLIENT_ID);
 
-// List of admin emails who can approve/reject
-const ADMIN_EMAILS = ["transportation@uclacsc.org", "wanjun01@g.ucla.edu"];
+const ADMIN_EMAILS = ['transportation@uclacsc.org', 'wanjun01@g.ucla.edu'];
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-    credentials: true,
-  })
-);
-app.use(
-  session({
-    secret: "REPLACE_THIS_WITH_A_RANDOM_SECRET_STRING",
-    resave: false,
-    saveUninitialized: true,
-    cookie: {
-      httpOnly: true,
-      secure: false, // true if using HTTPS in production
-      sameSite: "lax",
+app.use(cors({
+  origin: "http://localhost:5173", // set to frontend origin
+  credentials: true, // allow cookies
+}));
+
+// MONGOOSE SETUP
+/* ################## GROUP MEMBERS: COMMENT FROM HERE ############################ */
+mongoose.connect('mongodb://localhost:27017/35ldb', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+const db = mongoose.connection;
+db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+db.once('open', async () => {
+  console.log('Connected to MongoDB');
+
+  // SCHEMA
+  const emailRegex = /^(.*@(ucla\.edu|g\.ucla\.edu|uclacsc\.org))$/;
+
+  const userSchema = new mongoose.Schema({
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      validate: {
+        validator: (value) => emailRegex.test(value),
+        message: (props) =>
+          `${props.value} is not a valid UCLA email address. Please use your UCLA email address.`,
+      },
     },
-  })
-);
+    uid: {
+      type: Number,
+      required: true,
+      unique: true,
+      validate: {
+        validator: (num) => /^\d{9}$/.test(num),
+        message: (props) => `Invalid uid ${props.value}`,
+      },
+    },
+    role: {
+      type: String,
+      enum: ['user', 'admin'],
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ['NOT_SUBMITTED', 'PENDING', 'APPROVED', 'REJECTED'],
+      default: 'NOT_SUBMITTED',
+      required: true,
+    },
+  }, { versionKey: false });
 
-// 1) requireAuth middleware
+  const User = mongoose.model('User', userSchema);
+
+  // IMPORT Booking & Return models
+  const Booking = require('./models/Booking');
+  const Return = require('./models/Return');
+
+  // Hardcoded admin insertions
+  const adminUsers = [
+    { uid: 888888888, role: 'admin', email: 'transportation@uclacsc.org', status: 'APPROVED' },
+    // Devs: Add your info if you wish to test admin functions
+  ];
+
+  // Sample data insertion (non-admins)
+  const sampleUsers = [
+    { uid: 987654321, role: 'user', email: '987@g.ucla.edu', status: 'NOT_SUBMITTED' },
+    { uid: 110000000, role: 'user', email: '110@g.ucla.edu', status: 'NOT_SUBMITTED' }
+  ];
+
+  try {
+    // Insert admins
+    for (const admin of adminUsers) {
+      const exists = await User.exists({ uid: admin.uid });
+      if (!exists) {
+        await User.create(admin);
+        console.log(`Inserted admin with UID: ${admin.uid}`);
+      } else {
+        console.log(`Admin with UID: ${admin.uid} already exists.`);
+      }
+    }
+
+    // Insert sample users
+    for (const user of sampleUsers) {
+      const exists = await User.exists({ uid: user.uid });
+      if (!exists) {
+        await User.create(user);
+        console.log(`Inserted user with UID: ${user.uid}`);
+      } else {
+        console.log(`User with UID: ${user.uid} already exists.`);
+      }
+    }
+    console.log('Insertion process completed.');
+  } catch (err) {
+    console.error('Insert error:', err.message);
+  }
+});
+
+// Session middleware
+app.use(session({
+  secret: "REDACTED", // hide later
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    httpOnly: true,
+    secure: false, // set to true in production with HTTPS
+    sameSite: "Lax",
+  }
+}));
+/* ################## GROUP MEMBERS: TO HERE ############################ */
+
+// Add to any API that requires auth beforehand
 const requireAuth = (req, res, next) => {
-  if (!req.session.user) {
-    return res.status(401).json({ error: "Not logged in" });
-  }
+  if (!req.session.user) return res.status(401).json({ error: "Not logged in" });
   next();
 };
 
-// 2) requireAdmin middleware
 const requireAdmin = (req, res, next) => {
-  if (!ADMIN_EMAILS.includes(req.session.user.email)) {
-    return res.status(403).json({ error: "Admin access required" });
-  }
+  if (!ADMIN_EMAILS.includes(req.session.user.email)) return res.status(403).json({ error: "Unauthorized: Admin access required" });
   next();
-};
+}
 
-// -----------------------------------------------------------
-// 3) Google OAuth Login → POST /api/auth/google
-// -----------------------------------------------------------
+
+/* ########################
+   ###     AUTH API     ### 
+   ######################## */
+
+// app.post -> frontend upload data from backend
+// app.get -> 
+
+// Authenticate google login and establish session cookie
 app.post("/api/auth/google", async (req, res) => {
   const { idToken } = req.body;
   try {
@@ -65,126 +154,45 @@ app.post("/api/auth/google", async (req, res) => {
       audience: secrets.CLIENT_ID,
     });
     const payload = ticket.getPayload();
-    const { email, name, picture } = payload;
 
-    // Only allow UCLA or CSC admin emails
-    if (
-      !email.endsWith("@ucla.edu") &&
-      !email.endsWith("@g.ucla.edu") &&
-      !ADMIN_EMAILS.includes(email)
-    ) {
+    // Validate email domain again server-side
+    if (!payload.email.endsWith("@g.ucla.edu") && !ADMIN_EMAILS.includes(payload.email)) {
       return res.status(403).json({ error: "Unauthorized domain" });
     }
 
-    // Put basic info into session (so requireAuth will pass)
+    // Set session
     req.session.user = {
-      email,
-      name,
-      picture,
+      name: payload.name,
+      email: payload.email,
+      picture: payload.picture,
     };
 
-    // Check DB for existing user
+    const User = mongoose.model('User');
+    const email = req.session.user.email;
+
     let user = await User.findOne({ email });
     if (!user) {
-      // First‐time login → create new User with status="NOT_SUBMITTED"
       user = await User.create({
-        email,
-        uid: 0, // placeholder until they register
+        email: payload.email,
+        uid: 0, 
         role: ADMIN_EMAILS.includes(email) ? "admin" : "user",
         status: "NOT_SUBMITTED",
       });
     }
 
-    return res.json({
-      message: "Login successful",
-      status: user.status,
-      isNewUser: user.uid === 0,
-    });
+    return res.json({ isNewUser: user.uid === 0, message: "Login successful" }); // TODO: implement isNewUser logic
   } catch (error) {
     console.error("Token verification failed:", error);
     return res.status(401).json({ error: "Invalid token" });
   }
 });
 
-// -----------------------------------------------------------
-// 4) GET /api/auth/session → return { user } if logged in, else 401
-// -----------------------------------------------------------
-app.get("/api/auth/session", (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).json({ error: "Not logged in" });
-  }
-  return res.json({ user: req.session.user });
+// Check if logged in (session is active)
+app.get("/api/auth/session", requireAuth, (req, res) => {
+  res.json({ user: req.session.user });
 });
 
-// -----------------------------------------------------------
-// 5) GET /api/auth/status → return { status } for the logged-in user
-// -----------------------------------------------------------
-app.get("/api/auth/status", requireAuth, async (req, res) => {
-  try {
-    const email = req.session.user.email;
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.json({ status: "NOT_SUBMITTED" });
-    }
-    console.log(user.status);
-    return res.json({ status: user.status });
-  } catch (err) {
-    console.error("Error in /api/auth/status:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
-
-// -----------------------------------------------------------
-// 6) POST /api/auth/register → user submits UID
-// -----------------------------------------------------------
-app.post("/api/auth/register", requireAuth, async (req, res) => {
-  const { uid } = req.body;
-  if (!uid || !/^\d{9}$/.test(String(uid))) {
-    return res.status(400).json({ error: "Invalid UID" });
-  }
-  try {
-    const email = req.session.user.email;
-    const user = await User.findOne({ email });
-    if (!user || user.uid !== 0) {
-      return res
-        .status(400)
-        .json({ error: "Already applied or user missing" });
-    }
-    user.uid = Number(uid);
-    
-    await user.save();
-    return res.json({ message: "UID Updated" });
-  } catch (err) {
-    console.error("Registration error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
-
-// -----------------------------------------------------------
-// 7) POST /api/admin/review-user → { email, action } to APPROVE or REJECT
-// -----------------------------------------------------------
-app.post("/api/admin/review-user", requireAuth, requireAdmin, async (req, res) => {
-  const { email, action } = req.body;
-  if (!["approve", "reject"].includes(action)) {
-    return res.status(400).json({ error: "Invalid action" });
-  }
-  try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    user.status = action === "approve" ? "APPROVED" : "REJECTED";
-    await user.save();
-    return res.json({ message: `User ${action}d`, status: user.status });
-  } catch (err) {
-    console.error("Review error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
-
-// -----------------------------------------------------------
-// 8) POST /api/auth/logout → clear session
-// -----------------------------------------------------------
+// Logout
 app.post("/api/auth/logout", (req, res) => {
   req.session.destroy(() => {
     res.clearCookie("connect.sid");
@@ -192,44 +200,43 @@ app.post("/api/auth/logout", (req, res) => {
   });
 });
 
-// -----------------------------------------------------------
-// 9) GET /api/bookings (placeholder) → return user’s bookings
-// -----------------------------------------------------------
-app.get("/api/bookings", requireAuth, async (req, res) => {
-  // Example: if you had a Booking model, you’d do:
-  // const Booking = require("./models/Booking");
-  // const userEmail = req.session.user.email;
-  // const bookings = await Booking.find({ userEmail }).lean();
-  // return res.json({ bookings });
+/* Added APIs to get frontend to work */
+// Status endpoint requested by Dashboard.jsx
+app.get("/api/auth/status", requireAuth, async (req, res) => {
+  const User = mongoose.model('User');
 
-  // For now, return an empty array:
-  return res.json({ bookings: [] });
+  const email = req.session.user.email;
+
+  let user = await User.findOne({email});
+    
+  res.json({
+      status: user.status,
+    });
 });
 
-// -----------------------------------------------------------
-// 10) NEW: GET /api/returns → return user’s “van returns”
-// -----------------------------------------------------------
-app.get("/api/returns", requireAuth, async (req, res) => {
-  try {
-    const userEmail = req.session.user.email;
-    const returns = await Return.find({ userEmail }).sort({ pickupDate: -1 }).lean();
-    return res.json({ returns });
-  } catch (err) {
-    console.error("Error in /api/returns:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
+/* ########################
+   ###      DB API      ###    
+   ######################## */
 
-// -----------------------------------------------------------
-// 11) POST /api/admin/bookings/:id/status (placeholder)
-// -----------------------------------------------------------
-app.post("/api/admin/bookings/:id/status", requireAuth, requireAdmin, async (req, res) => {
-  return res.status(501).json({ error: "Not implemented" });
-});
+/* 
+Workflow for API calls
 
-// -----------------------------------------------------------
-// 12) POST /api/admin/approve-user
-// -----------------------------------------------------------
+* data/get (get userData)
+|\ 
+| * auth/register (if no user)
+|/
+* auth/checkUser 
+* auth/google (login)
+*/
+
+// TODO get info based on user gmail
+// can view get via http://localhost:5173/api/data/get
+// develop fxns in get, to test curl -X GET http://localhost:5173/api/data/get -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+app.get("/api/data/get", async (req, res) => {
+  // query DB here
+  return res.json({ message: "TODO" });
+});
+// Admin API: approve user by UID
 app.post("/api/admin/approve-user", requireAuth, requireAdmin, async (req, res) => {
   const { uid } = req.body;
   try {
@@ -237,6 +244,7 @@ app.post("/api/admin/approve-user", requireAuth, requireAdmin, async (req, res) 
     const user = await User.findOneAndUpdate(
       { uid },
       { $set: { status: "APPROVED" } },
+      { new: true }
     );
 
     if (!user) {
@@ -245,6 +253,12 @@ app.post("/api/admin/approve-user", requireAuth, requireAdmin, async (req, res) 
 
     return res.json({
       message: "User approved successfully",
+      user: {
+        uid: user.uid,
+        email: user.email,
+        role: user.role,
+        status: user.status
+      }
     });
   } catch (error) {
     console.error("User approval failed:", error);
@@ -252,21 +266,119 @@ app.post("/api/admin/approve-user", requireAuth, requireAdmin, async (req, res) 
   }
 });
 
-// -----------------------------------------------------------
-// 13) Connect to MongoDB & start Express
-// -----------------------------------------------------------
-mongoose
-  .connect(process.env.MONGO_URI || "mongodb://localhost:27017/35ldb", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
-    console.log("✅ Connected to MongoDB");
-    app.listen(PORT, () => {
-      console.log(`Server running at http://localhost:${PORT}`);
+/* ############### NEW USER REGISTRATION ################### */
+
+/* Verify if the login is from a new user */
+app.post("/api/auth/checkUser", async (req, res) => {
+  try {
+    const email = req.session.user.email;
+    const User = mongoose.model('User');
+
+    // Query email in DB
+    const user = await User.findOne({ email });
+
+    if (user) {
+      return res.json({
+        exists: true
+      });
+    } else {
+      return res.json({
+        exists: false
+      });
+    }
+  } catch (error) {
+    console.error("Check user failed:", error);
+    return res.status(500).json({ error: "Server error while checking user" });
+  }
+});
+
+/* To register new users */
+app.post("/api/auth/register", async (req, res) => {
+  const { uid } = req.body;
+  try {
+    // Validate UID
+    if (!uid || !/^\d{9}$/.test(uid)) {
+      return res.status(400).json({ error: "Invalid UID: Must be a 9-digit number" });
+    }
+
+    const email = req.session.user.email;
+    const User = mongoose.model('User');
+
+    // Query DB to check if UID already exists
+    const exists = await User.exists({ uid });
+    if (exists) {
+      return res.status(400).json({ error: "UID already exists" });
+    }
+
+    // Determine role based on admin emails
+    const isAdmin = ADMIN_EMAILS.includes(email);
+
+    // Create new user
+    let user = await User.findOne({ email });
+    user.uid =  parseInt(uid);
+    user.status = 'NOT_SUBMITTED'
+    
+    // const user = await User.findOne({
+    //   uid: parseInt(uid),
+    //   role: isAdmin ? 'admin' : 'user',
+    //   email,
+    //   status: isAdmin ? 'APPROVED' : 'NOT_SUBMITTED'
+    // });
+
+    // Update session with new user details
+    req.session.user = {
+      name: req.session.user.name,
+      email: user.email,
+      picture: req.session.user.picture,
+      uid: user.uid,
+      role: user.role,
+      status: user.status
+    };
+
+    return res.json({
+      message: "User registered successfully"
     });
-  })
-  .catch((err) => {
-    console.error("❌ MongoDB connection error:", err.message);
-    process.exit(1);
-  });
+  } catch (error) {
+    console.error("User registration failed:", error);
+    return res.status(400).json({ error: "Invalid UID or registration failed" });
+  }
+});
+
+// /* ############### APPROVED DRIVER APPLICATION ################### */
+
+// /* “New works” routes: bookings + returns */
+
+// GET /api/bookings → return all bookings for the logged‐in user
+app.get("/api/bookings", requireAuth, async (req, res) => {
+  try {
+    const userEmail = req.session.user.email;
+    const bookings = await mongoose.model('Booking').find({ userEmail }).sort({ pickupDate: -1 }).lean();
+    return res.json({ bookings });
+  } catch (err) {
+    console.error("Error in /api/bookings:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+// // POST /api/admin/bookings/:id/status → placeholder for admin to update booking
+// app.post("/api/admin/bookings/:id/status", requireAuth, requireAdmin, async (req, res) => {
+//   return res.status(501).json({ error: "Not implemented" });
+// });
+
+// GET /api/returns → return all “van returns” for the logged‐in user
+app.get("/api/returns", requireAuth, async (req, res) => {
+  try {
+    const userEmail = req.session.user.email;
+    const returns = await mongoose.model('Return').find({ userEmail }).sort({ pickupDate: -1 }).lean();
+    return res.json({ returns });
+  } catch (err) {
+    console.error("Error in /api/returns:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});
+
