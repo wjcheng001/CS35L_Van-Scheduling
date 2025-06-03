@@ -10,6 +10,8 @@ import Welcome from "./pages/Welcome";
 import DriverApplication from "./pages/DriverApplication";
 import { useNavigate } from "react-router-dom";
 import ReservationSuccess from "./pages/ReserveSuccess";
+import VanSchedule from "./pages/VanSchedule";
+import Resource from "./pages/Resource"
 
 function Login() {
   const [user, setUser] = useState(null);
@@ -83,7 +85,9 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/app" element={<DriverApplication />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/van-schedule" element={<VanSchedule />} />
         <Route path="/welcome" element={<Welcome />} />
+        <Route path="/resources" element={<Resource />} />
         <Route path="/reservation-success" element={<ReservationSuccess />} />
       </Routes>
     </BrowserRouter>

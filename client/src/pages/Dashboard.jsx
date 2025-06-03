@@ -6,49 +6,53 @@ import Footer from "../components/Footer";
 import StatusBanner from "../components/StatusBanner";
 
 // ------------ BookingCard -------------
-// src/components/BookingCard.jsx
 function BookingCard({ booking }) {
   const formatDate = (isoDate) => {
     const d = new Date(isoDate);
     const m = d.getMonth() + 1;
     const day = d.getDate();
-    return `${m}/${day}`;
+    return `${m}/${day}/${d.getFullYear()}`;
   };
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col justify-between h-full">
-      {/* Top: Date / Time */}
-      <div>
-        <div className="flex justify-between text-sm text-gray-700 mb-2">
-          <span>
-            Date: <strong>{formatDate(booking.pickupDate)}</strong>
-          </span>
-          <span>
-            Time: {booking.pickupTime} – {booking.returnTime}
-          </span>
+      {/* Top: Pickup & Return Date/Time */}
+      <div className="mb-2">
+        <div className="text-sm text-gray-700">
+          <span className="font-semibold">Pickup:</span>{" "}
+          {formatDate(booking.pickupDate)} @ {booking.pickupTime}
         </div>
-        <div className="text-sm text-gray-800 mb-1">
+        <div className="text-sm text-gray-700 mt-1">
+          <span className="font-semibold">Return:</span>{" "}
+          {formatDate(booking.returnDate)} @ {booking.returnTime}
+        </div>
+      </div>
+
+      {/* Middle: Van ID, Project, Site, Address, Vans, Purpose */}
+      <div className="text-sm text-gray-800 space-y-1">
+        <div>
           Van ID: <strong>{booking.vanId}</strong>
         </div>
-        <div className="text-sm text-gray-800 mb-1">
+        <div>
           Project: <strong>{booking.projectName}</strong>
         </div>
-        <div className="text-sm text-gray-800 mb-1">
+        <div>
           Site: <strong>{booking.siteName}</strong>
         </div>
-        <div className="text-sm text-gray-800 mb-1">
+        <div>
           Address: <strong>{booking.siteAddress}</strong>
         </div>
-        <div className="text-sm text-gray-800 mb-1">
+        <div>
           Vans: <strong>{booking.numberOfVans}</strong>
         </div>
-        <div className="text-sm text-gray-800">
+        <div>
           Purpose: <strong>{booking.tripPurpose}</strong>
         </div>
       </div>
     </div>
   );
 }
+
 
 
 // ------------ ReturnCard -------------
