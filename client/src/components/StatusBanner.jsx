@@ -42,12 +42,11 @@ export default function StatusBanner({ status }) {
         return;
       }
       const bookingsData = await bookingsRes.json();
-      if (bookingsData.hasActive) {
+      if (bookingsData.bookings.length !== 0) {
         alert("You already have an active van booking.");
         return;
       }
       // 4) All checks passed → send them to the booking form
-      console.log(bookingsData.bookings)
       navigate("/reserve");
     } catch (err) {
       console.error("Error during booking check:", err);

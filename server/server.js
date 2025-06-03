@@ -9,6 +9,20 @@ const User = require("./models/User");
 const Booking = require("./models/Booking");
 const Return = require("./models/Return"); // ← Import the Return model
 const secrets = require("./secrets.js");
+const Van = require("./models/Van");
+
+const VAN_IDS = [
+  4116,
+  4367,
+  4597,
+  405006,
+  405007,
+  405014,
+  405331,
+  405332,
+  405333,
+  405437,
+];
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -206,13 +220,8 @@ app.get("/api/bookings", requireAuth, async (req, res) => {
     const bookings = await Booking.find({ userEmail })
       .sort({ createdAt: -1 })
       .lean();
-    // 2) Determine if any booking is still “active” (PENDING or CONFIRMED)
-    const hasActive = bookings.some(b =>
-      ["PENDING", "CONFIRMED"].includes(b.status)
-    );
-
-    // 3) Return the array + hasActive boolean
-    return res.json({ bookings, hasActive });
+    // 3) Return the array
+    return res.json({ bookings });
   } catch (err) {
     console.error("Error in GET /api/bookings:", err);
     return res.status(500).json({ error: "Server error" });
@@ -236,87 +245,117 @@ app.get("/api/returns", requireAuth, async (req, res) => {
 // -----------------------------------------------------------
 // 11) POST /api/admin/bookings/:id/status (placeholder)
 // -----------------------------------------------------------
-app.post("/api/admin/bookings/:id/status", requireAuth, requireAdmin, async (req, res) => {
-  return res.status(501).json({ error: "Not implemented" });
-});
-
-// POST /api/bookings
-//   1) requireAuth → must be logged in
-//   2) Check that the User’s status is “APPROVED”
-//   3) Check that the User has no existing “active” booking
-//   4) Create a new booking document
-// -----------------------------------------------------------
 app.post("/api/bookings", requireAuth, async (req, res) => {
   try {
-    const userEmail = req.session.user.email;
-
-    // 1) Look up the full User to see if they’re “APPROVED”
-    const user = await User.findOne({ email: userEmail });
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    if (user.status !== "APPROVED") {
-      return res.status(403).json({ error: "Your account is not approved to book a van." });
-    }
-
-    // 2) Check if there is any existing booking with status PENDING or CONFIRMED
-    const existing = await Booking.findOne({
-      userEmail,
-      status: { $in: ["PENDING", "CONFIRMED"] }
-    });
-    if (existing) {
-      return res
-        .status(400)
-        .json({ error: "You already have an active van booking." });
-    }
-
-    // 3) Validate required fields from req.body
     const {
       projectName,
-      pickupDate,
-      pickupTime,
+      pickupDate,    // e.g. "2025-09-01"
+      pickupTime,    // e.g. "09:30" (24-hour format)
       numberOfVans,
-      returnDate,
-      returnTime,
+      returnDate,    // e.g. "2025-09-01"
+      returnTime,    // e.g. "17:00"
       siteName,
       siteAddress,
       within75Miles,
-      tripPurpose
+      tripPurpose,
     } = req.body;
 
+    // 1) Validate required fields
     if (
       !projectName ||
       !pickupDate ||
       !pickupTime ||
-      !numberOfVans ||
+      typeof numberOfVans !== "number" ||
       !returnDate ||
       !returnTime ||
       !siteName ||
       !siteAddress ||
-      typeof tripPurpose !== "string"
+      typeof within75Miles !== "boolean" ||
+      !tripPurpose
     ) {
-      return res.status(400).json({ error: "Missing required booking fields." });
+      return res
+        .status(400)
+        .json({ error: "Missing required booking fields." });
     }
 
-    // 4) Create the new booking
+    // 2) Check that the user’s account is APPROVED
+    const userEmail = req.session.user.email;
+    const user = await User.findOne({ email: userEmail });
+    if (!user || user.status !== "APPROVED") {
+      return res
+        .status(403)
+        .json({ error: "Your account is not approved to book a van." });
+    }
+
+    // 3) Build JS Date objects for the full start/end datetime
+    //    We assume pickupDate is "YYYY-MM-DD" and pickupTime is "HH:mm" (24-hour).
+    //    We append ":00" for seconds to make a valid ISO string.
+    //
+    const start = new Date(`${pickupDate}T${pickupTime}:00`);
+    const end = new Date(`${returnDate}T${returnTime}:00`);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+      return res
+        .status(400)
+        .json({ error: "Invalid pickup/return date or time." });
+    }
+
+    // 4) Find a van whose existing busy intervals do NOT overlap [start, end)
+    //
+    //    Overlap logic: Two intervals [a, b) and [c, d) overlap
+    //    if and only if (a < d) AND (c < b).
+    //
+    //    We want a van such that for every existing slot { s.start, s.end },
+    //    NOT( s.start < end  AND  start < s.end ).
+    //
+    //    Equivalently, we can say: no element in busy satisfies (start < busy.end AND busy.start < end).
+    //
+    const freeVan = await Van.findOne({
+      vanId: { $in: VAN_IDS },
+      $nor: [
+        {
+          busy: {
+            $elemMatch: {
+              // busy.start < end
+              start: { $lt: end },
+              // busy.end > start  ⟸  ( start < busy.end )
+              end: { $gt: start },
+            }
+          }
+        }
+      ]
+    });
+
+    if (!freeVan) {
+      return res
+        .status(400)
+        .json({ error: "All vans are busy at the requested time interval." });
+    }
+
+    // 5) Create the Booking with the chosen vanId
     const newBooking = await Booking.create({
       userEmail,
       projectName,
-      pickupDate: new Date(pickupDate),
-      pickupTime,
+      pickupDate: start,    // store as a Date
+      pickupTime,           // store original time string if you need to display
       numberOfVans,
-      returnDate: new Date(returnDate),
-      returnTime,
+      returnDate: end,      // store as a Date
+      returnTime,           // store original time string
       siteName,
       siteAddress,
-      within75Miles: Boolean(within75Miles),
+      within75Miles,
       tripPurpose,
-      status: "PENDING" // this is the default
+      vanId: freeVan.vanId, // server‐assigned
     });
 
+    // 6) Mark that van’s busy interval by pushing { start, end }
+    freeVan.busy.push({ start, end });
+    await freeVan.save();
+
+    // 7) Return success + the new booking
     return res.status(201).json({
-      message: "Van booking created successfully.",
-      booking: newBooking
+      message: "Booking created successfully",
+      booking: newBooking,
     });
   } catch (err) {
     console.error("Error in POST /api/bookings:", err);
@@ -327,13 +366,25 @@ app.post("/api/bookings", requireAuth, async (req, res) => {
 // -----------------------------------------------------------
 // 12) Connect to MongoDB & start Express
 // -----------------------------------------------------------
+
 mongoose
   .connect(process.env.MONGO_URI || "mongodb://localhost:27017/35ldb", {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => {
+  .then(async () => {
     console.log("✅ Connected to MongoDB");
+
+    // ─── Ensure all 10 vans exist ─────────────────────────────────────────────
+    for (const id of VAN_IDS) {
+      const exists = await Van.findOne({ vanId: id });
+      if (!exists) {
+        await Van.create({ vanId: id, busy: [] });
+      }
+    }
+    console.log("✅ Vans are initialized (hard‐coded).");
+
+    // ─── Start Express ───────────────────────────────────────────────────────
     app.listen(PORT, () => {
       console.log(`Server running at http://localhost:${PORT}`);
     });

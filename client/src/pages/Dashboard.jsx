@@ -6,7 +6,8 @@ import Footer from "../components/Footer";
 import StatusBanner from "../components/StatusBanner";
 
 // ------------ BookingCard -------------
-function BookingCard({ booking, onCancel, onPickup }) {
+// src/components/BookingCard.jsx
+function BookingCard({ booking }) {
   const formatDate = (isoDate) => {
     const d = new Date(isoDate);
     const m = d.getMonth() + 1;
@@ -15,10 +16,10 @@ function BookingCard({ booking, onCancel, onPickup }) {
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 relative flex flex-col justify-between h-full">
+    <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col justify-between h-full">
       {/* Top: Date / Time */}
       <div>
-        <div className="flex justify-between text-sm text-gray-700 mb-1">
+        <div className="flex justify-between text-sm text-gray-700 mb-2">
           <span>
             Date: <strong>{formatDate(booking.pickupDate)}</strong>
           </span>
@@ -26,61 +27,29 @@ function BookingCard({ booking, onCancel, onPickup }) {
             Time: {booking.pickupTime} – {booking.returnTime}
           </span>
         </div>
-        <div className="text-sm text-gray-800 mb-2">
+        <div className="text-sm text-gray-800 mb-1">
+          Van ID: <strong>{booking.vanId}</strong>
+        </div>
+        <div className="text-sm text-gray-800 mb-1">
           Project: <strong>{booking.projectName}</strong>
         </div>
-      </div>
-
-      {/* Middle: Status Icon + Text */}
-      <div className="flex flex-col items-center my-2">
-        {booking.status === "CONFIRMED" && (
-          <img
-            src="https://cdn.builder.io/api/v1/image/assets/TEMP/3c9479d61a58507a038f8a8c8367f19f0603dacc?placeholderIfAbsent=true"
-            alt="Confirmed"
-            className="w-8 h-8 mb-1"
-          />
-        )}
-        {booking.status === "PENDING" && (
-          <img
-            src="https://cdn.builder.io/api/v1/image/assets/TEMP/d7f404513c5b4ecd820ac0e15307fc7aa3fb72d7?placeholderIfAbsent=true"
-            alt="Pending"
-            className="w-8 h-8 mb-1"
-          />
-        )}
-        {booking.status === "REJECTED" && (
-          <img
-            src="https://cdn.builder.io/api/v1/image/assets/TEMP/d7f404513c5b4ecd820ac0e15307fc7aa3fb72d7?placeholderIfAbsent=true"
-            alt="Rejected"
-            className="w-8 h-8 mb-1"
-          />
-        )}
-        <div className="mt-1 text-sm font-semibold text-gray-900">
-          {booking.status === "CONFIRMED" && "Confirmed"}
-          {booking.status === "PENDING" && "Pending"}
-          {booking.status === "REJECTED" && "Rejected"}
+        <div className="text-sm text-gray-800 mb-1">
+          Site: <strong>{booking.siteName}</strong>
+        </div>
+        <div className="text-sm text-gray-800 mb-1">
+          Address: <strong>{booking.siteAddress}</strong>
+        </div>
+        <div className="text-sm text-gray-800 mb-1">
+          Vans: <strong>{booking.numberOfVans}</strong>
+        </div>
+        <div className="text-sm text-gray-800">
+          Purpose: <strong>{booking.tripPurpose}</strong>
         </div>
       </div>
-
-      {/* Bottom: Action Buttons (only if CONFIRMED) */}
-      {booking.status === "CONFIRMED" && (
-        <div className="mt-3 flex space-x-2">
-          <button
-            onClick={() => onCancel(booking._id)}
-            className="flex-1 py-1.5 bg-red-500 text-white rounded-md text-sm font-semibold hover:bg-red-600"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => onPickup(booking._id)}
-            className="flex-1 py-1.5 bg-blue-500 text-white rounded-md text-sm font-semibold hover:bg-blue-600"
-          >
-            Pick Up
-          </button>
-        </div>
-      )}
     </div>
   );
 }
+
 
 // ------------ ReturnCard -------------
 function ReturnCard({ ret }) {
@@ -197,54 +166,6 @@ export default function Dashboard() {
     );
   }
 
-  //  Handlers for cancel / pick‐up (stubs for demonstration)
-  const handleCancel = async (bookingId) => {
-    try {
-      const res = await fetch(
-        `http://localhost:3000/api/admin/bookings/${bookingId}/status`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ status: "REJECTED" }),
-        }
-      );
-      if (res.ok) {
-        const updated = await res.json();
-        setBookings((prev) =>
-          prev.map((b) => (b._id === bookingId ? updated.booking : b))
-        );
-      } else {
-        console.error("Cancel failed");
-      }
-    } catch (err) {
-      console.error("Error canceling booking:", err);
-    }
-  };
-
-  const handlePickup = async (bookingId) => {
-    try {
-      const res = await fetch(
-        `http://localhost:3000/api/admin/bookings/${bookingId}/status`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ status: "CONFIRMED" }),
-        }
-      );
-      if (res.ok) {
-        const updated = await res.json();
-        setBookings((prev) =>
-          prev.map((b) => (b._id === bookingId ? updated.booking : b))
-        );
-      } else {
-        console.error("Pick Up failed");
-      }
-    } catch (err) {
-      console.error("Error picking up booking:", err);
-    }
-  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -263,14 +184,14 @@ export default function Dashboard() {
         </div>
 
         {/* My Bookings */}
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">My Bookings</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">My Booking</h2>
         {bookings.length === 0 ? (
           <p className="text-gray-600">You haven’t made any bookings yet.</p>
         ) : (
           <div className="flex flex-wrap -mx-2 mb-8">
             {bookings.map((b) => (
-              <div key={b._id} className="px-2 mb-6 w-full md:w-1/2 lg:w-1/3">
-                <BookingCard booking={b} onCancel={handleCancel} onPickup={handlePickup} />
+              <div key={b._id} className="px-2 mb-6 w-full">
+                <BookingCard booking={b} />
               </div>
             ))}
             <div className="px-2 w-full">

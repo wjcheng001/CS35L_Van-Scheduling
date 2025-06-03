@@ -1,3 +1,4 @@
+// models/Booking.js
 const mongoose = require("mongoose");
 
 const bookingSchema = new mongoose.Schema(
@@ -51,6 +52,10 @@ const bookingSchema = new mongoose.Schema(
       enum: ["PENDING", "CONFIRMED", "REJECTED"],
       default: "PENDING"
     },
+    vanId: {
+      type: Number,
+      required: false
+    }
   },
   { timestamps: true }
 );

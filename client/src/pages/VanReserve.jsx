@@ -61,12 +61,12 @@ const VanReservation = () => {
           projectName: formData.projectName,
           pickupDate: formData.pickupDate,
           pickupTime: formData.pickupTime,
-          numberOfVans: formData.numberOfVans,
+          numberOfVans: Number(formData.numberOfVans),
           returnDate: formData.returnDate,
           returnTime: formData.returnTime,
           siteName: formData.siteName,
           siteAddress: formData.siteAddress,
-          within75Miles: formData.isOutsideRange,
+          within75Miles: Boolean(formData.isOutsideRange), // ensure boolean
           tripPurpose: formData.tripPurpose,
         }),
       });
@@ -74,6 +74,12 @@ const VanReservation = () => {
       if (res.status === 401) {
         // not authenticated; redirect to login
         navigate("/login");
+        return;
+      }
+
+      if (res.status === 400) {
+        alert("Sorry, there is no available van in this time slot, please check out the van schedule")
+        navigate("/dashboard");
         return;
       }
 

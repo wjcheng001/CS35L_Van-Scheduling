@@ -8,9 +8,8 @@ export default function Header() {
   const [loading, setLoading] = useState(false);
 
   const handleVanBookingClick = async (e) => {
+    console.log("clicked");
     e.preventDefault();
-    if (loading) return;       // avoid double‐click
-    setLoading(true);
 
     try {
       // 1) Check login + status
@@ -21,21 +20,18 @@ export default function Header() {
       });
       if (!authRes.ok) {
         // If your endpoint returns 401 or similar, treat as “not logged in”
-        setLoading(false);
         return navigate("/login");
       }
 
       const authData = await authRes.json();
       // assume authData looks like: { user: { email, status, … } } or { user: null }
       if (!authData.status) {
-        setLoading(false);
         console.log("not logged in");
         return navigate("/login");
       }
 
       if (authData.status !== "APPROVED") {
         alert("Your account is not confirmed to create a van booking yet.");
-        setLoading(false);
         return;
       }
 
@@ -47,23 +43,18 @@ export default function Header() {
       });
       if (!bookingsRes.ok) {
         alert("Could not verify existing bookings. Please try again later.");
-        setLoading(false);
         return;
       }
       const bookingsData = await bookingsRes.json();
-      if (bookingsData.hasActive) {
+      if (bookingsData.bookings.length !== 0) {
         alert("You already have an active van booking.");
-        setLoading(false);
         return;
       }
       // 4) All checks passed → send them to the booking form
-      setLoading(false);
-      console.log(bookingsData.bookings)
       navigate("/reserve");
     } catch (err) {
       console.error("Error during booking check:", err);
       alert("An unexpected error occurred. Please try again.");
-      setLoading(false);
     }
   };
 
