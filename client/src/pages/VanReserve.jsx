@@ -78,8 +78,9 @@ const VanReservation = () => {
       }
 
       if (res.status === 400) {
-        alert("Booking creation failed: Missing required field");
-        navigate("/dashboard");
+        const errData = await res.json();
+        alert(`Booking creation failed: ${errData.error}`);
+        // stay on this page so user can correct
         return;
       }
 
