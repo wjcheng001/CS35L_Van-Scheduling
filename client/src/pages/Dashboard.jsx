@@ -256,8 +256,29 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Van Return */}
+        {/* VanReturn */}
         <h2 className="text-2xl font-bold text-gray-800 mb-4">Van Return</h2>
+        {returns.length === 0 ? (
+          <p className="text-gray-600">No van returns to display.</p>
+        ) : (
+          <div className="flex flex-wrap -mx-2">
+            {returns.map((ret) => (
+              <div key={ret._id} className="px-2 mb-4 w-full md:w-1/2 lg:w-1/3">
+                <ReturnCard ret={ret} />
+              </div>
+            ))}
+          </div>
+        )}
+                {/* VanReturn */}
+                <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold text-gray-800">Van Return</h2>
+          <button 
+            onClick={() => navigate('/return')}
+            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+          >
+            Return a Van
+          </button>
+        </div>
         {returns.length === 0 ? (
           <p className="text-gray-600">No van returns to display.</p>
         ) : (
