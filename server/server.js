@@ -101,7 +101,7 @@ app.post("/api/auth/google", async (req, res) => {
     return res.json({
       message: "Login successful",
       status: user.status,
-      isNewUser: user.status === "NOT_SUBMITTED",
+      isNewUser: user.uid === 0,
     });
   } catch (error) {
     console.error("Token verification failed:", error);
@@ -129,6 +129,7 @@ app.get("/api/auth/status", requireAuth, async (req, res) => {
     if (!user) {
       return res.json({ status: "NOT_SUBMITTED" });
     }
+    console.log(user.status);
     return res.json({ status: user.status });
   } catch (err) {
     console.error("Error in /api/auth/status:", err);
