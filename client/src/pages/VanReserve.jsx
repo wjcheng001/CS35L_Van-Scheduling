@@ -78,7 +78,7 @@ const VanReservation = () => {
       }
 
       if (res.status === 400) {
-        alert("Sorry, there is no available van in this time slot, please check out the van schedule")
+        alert("Booking creation failed: Missing required field");
         navigate("/dashboard");
         return;
       }

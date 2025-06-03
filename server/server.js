@@ -249,34 +249,41 @@ app.post("/api/bookings", requireAuth, async (req, res) => {
   try {
     const {
       projectName,
-      pickupDate,    // e.g. "2025-09-01"
-      pickupTime,    // e.g. "09:30" (24-hour format)
-      numberOfVans,
-      returnDate,    // e.g. "2025-09-01"
-      returnTime,    // e.g. "17:00"
+      pickupDate,     // e.g. "2025-09-01"
+      pickupTime,     // e.g. "09:30" (24-hour format)
+      numberOfVans,   // coming in as string or number
+      returnDate,     // e.g. "2025-09-01"
+      returnTime,     // e.g. "17:00"
       siteName,
       siteAddress,
-      within75Miles,
+      within75Miles,  // coming in as string ("true"/"false") or boolean
       tripPurpose,
     } = req.body;
 
-    // 1) Validate required fields
+    // ─── 1) VALIDATE REQUIRED FIELDS ──────────────────────────────────────────
+
+    // Coerce numberOfVans and within75Miles first
+    const vansCount = Number(numberOfVans);
+    const outsideRange = within75Miles === true || within75Miles === "true";
+
+    // Check that every required field is present and in the right “shape”
     if (
       !projectName ||
       !pickupDate ||
       !pickupTime ||
-      typeof numberOfVans !== "number" ||
+      isNaN(vansCount) ||        // must convert to a number successfully
       !returnDate ||
       !returnTime ||
       !siteName ||
       !siteAddress ||
-      typeof within75Miles !== "boolean" ||
-      !tripPurpose
+      typeof tripPurpose !== "string" ||
+      tripPurpose.trim() === ""
     ) {
       return res
         .status(400)
         .json({ error: "Missing required booking fields." });
     }
+
 
     // 2) Check that the user’s account is APPROVED
     const userEmail = req.session.user.email;
