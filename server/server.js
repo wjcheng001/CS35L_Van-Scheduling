@@ -152,7 +152,7 @@ app.get("/api/auth/status", requireAuth, async (req, res) => {
 });
 
 // -----------------------------------------------------------
-// 6) POST /api/auth/register → user submits UID, set status = "NOT_SUBMITTED"
+// 6) POST /api/auth/register → user submits UID
 // -----------------------------------------------------------
 app.post("/api/auth/register", requireAuth, async (req, res) => {
   const { uid } = req.body;
@@ -162,15 +162,15 @@ app.post("/api/auth/register", requireAuth, async (req, res) => {
   try {
     const email = req.session.user.email;
     const user = await User.findOne({ email });
-    if (!user || user.status !== "NOT_SUBMITTED") {
+    if (!user || user.uid !== 0) {
       return res
         .status(400)
         .json({ error: "Already applied or user missing" });
     }
     user.uid = Number(uid);
-    user.status = "PENDING";
+
     await user.save();
-    return res.json({ message: "Driver application submitted", status: "PENDING" });
+    return res.json({ message: "UID Updated" });
   } catch (err) {
     console.error("Registration error:", err);
     return res.status(500).json({ error: "Server error" });
@@ -210,7 +210,7 @@ app.post("/api/auth/logout", (req, res) => {
 });
 
 // -----------------------------------------------------------
-// 9) GET /api/bookings (placeholder) → return user’s bookings
+// 9) GET /api/bookings → return user’s bookings
 // -----------------------------------------------------------
 app.get("/api/bookings", requireAuth, async (req, res) => {
   try {
@@ -243,7 +243,7 @@ app.get("/api/returns", requireAuth, async (req, res) => {
 });
 
 // -----------------------------------------------------------
-// 11) POST /api/admin/bookings/:id/status (placeholder)
+// 11) POST /api/bookings
 // -----------------------------------------------------------
 app.post("/api/bookings", requireAuth, async (req, res) => {
   try {
@@ -372,6 +372,27 @@ app.post("/api/bookings", requireAuth, async (req, res) => {
 
 // -----------------------------------------------------------
 // 12) Connect to MongoDB & start Express
+// -----------------------------------------------------------
+app.post("/api/admin/approve-user", requireAuth, requireAdmin, async (req, res) => {
+  const { uid } = req.body;
+  try {
+    const User = mongoose.model('User');
+    const user = await User.findOneAndUpdate(
+      { uid },
+      { $set: { status: "APPROVED" } },
+    );
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });  
+    }
+    return res.json({ message: "User approved successfully" });
+  } catch (error) {
+    console.error("User approval failed:", error);
+    return res.status(500).json({ error: "Failed to approve user" });
+  }
+});
+
+// -----------------------------------------------------------
+// 13) Connect to MongoDB & start Express
 // -----------------------------------------------------------
 
 mongoose
