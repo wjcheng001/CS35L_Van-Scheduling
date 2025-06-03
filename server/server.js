@@ -236,6 +236,35 @@ app.get("/api/data/get", async (req, res) => {
   // query DB here
   return res.json({ message: "TODO" });
 });
+// Admin API: approve user by UID
+app.post("/api/admin/approve-user", requireAuth, requireAdmin, async (req, res) => {
+  const { uid } = req.body;
+  try {
+    const User = mongoose.model('User');
+    const user = await User.findOneAndUpdate(
+      { uid },
+      { $set: { status: "APPROVED" } },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.json({
+      message: "User approved successfully",
+      user: {
+        uid: user.uid,
+        email: user.email,
+        role: user.role,
+        status: user.status
+      }
+    });
+  } catch (error) {
+    console.error("User approval failed:", error);
+    return res.status(500).json({ error: "Failed to approve user" });
+  }
+});
 
 /* ############### NEW USER REGISTRATION ################### */
 
