@@ -154,7 +154,7 @@ app.post("/api/auth/register", requireAuth, async (req, res) => {
         .json({ error: "Already applied or user missing" });
     }
     user.uid = Number(uid);
-    user.status = "PENDING";
+    
     await user.save();
     return res.json({ message: "Driver application submitted", status: "PENDING" });
   } catch (err) {

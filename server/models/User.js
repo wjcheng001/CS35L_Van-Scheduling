@@ -19,10 +19,6 @@ const userSchema = new mongoose.Schema(
       type: Number,
       required: true,
       unique: true,
-      validate: {
-        validator: (num) => /^\d{9}$/.test(num),
-        message: (props) => `Invalid uid ${props.value}`,
-      },
     },
     role: {
       type: String,
