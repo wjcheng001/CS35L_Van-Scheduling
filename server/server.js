@@ -135,7 +135,7 @@ app.get("/api/auth/status", requireAuth, async (req, res) => {
 });
 
 // -----------------------------------------------------------
-// 6) POST /api/auth/register → user submits UID, set status = "PENDING"
+// 6) POST /api/auth/register → user submits UID
 // -----------------------------------------------------------
 app.post("/api/auth/register", requireAuth, async (req, res) => {
   const { uid } = req.body;
@@ -145,7 +145,7 @@ app.post("/api/auth/register", requireAuth, async (req, res) => {
   try {
     const email = req.session.user.email;
     const user = await User.findOne({ email });
-    if (!user || user.status !== "NOT_SUBMITTED") {
+    if (!user || user.uid !== 0) {
       return res
         .status(400)
         .json({ error: "Already applied or user missing" });
@@ -153,7 +153,7 @@ app.post("/api/auth/register", requireAuth, async (req, res) => {
     user.uid = Number(uid);
     
     await user.save();
-    return res.json({ message: "Driver application submitted", status: "PENDING" });
+    return res.json({ message: "UID Updated" });
   } catch (err) {
     console.error("Registration error:", err);
     return res.status(500).json({ error: "Server error" });
