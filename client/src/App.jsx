@@ -84,7 +84,7 @@ function App() {
         <Route path="/app" element={<DriverApplication />} />
         <Route path="/login" element={<Login />} />
         <Route path="/welcome" element={<Welcome />} />
-        <Route path="/res-success" element={<ReservationSuccess />} />
+        <Route path="/reservation-success" element={<ReservationSuccess />} />
       </Routes>
     </BrowserRouter>
   );

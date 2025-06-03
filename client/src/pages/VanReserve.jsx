@@ -18,6 +18,7 @@ const VanReservation = () => {
     isOutsideRange: false,
     tripPurpose: "",
   });
+
   const [error, setError] = useState("");
 
   // 1) Ensure the user is logged in. If not, redirect back to “/”
@@ -51,7 +52,6 @@ const VanReservation = () => {
   // 3) Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
       const res = await fetch("http://localhost:3000/api/bookings", {
         method: "POST",
@@ -285,6 +285,7 @@ const VanReservation = () => {
           {/* Submit Button */}
           <button
             type="submit"
+            onClick={e => handleSubmit(e)}
             className="rounded-[47px] bg-[#5937E0] border-2 border-[#5937E0] self-end mt-[40px] w-[200px] px-[70px] py-[26px] font-dm-sans text-[18px] text-white font-bold uppercase tracking-[2px] leading-[1.3] hover:bg-[#4826d9] transition-colors md:mr-1 md:px-5 md:mt-10"
           >
             Submit

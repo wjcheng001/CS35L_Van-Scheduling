@@ -240,6 +240,90 @@ app.post("/api/admin/bookings/:id/status", requireAuth, requireAdmin, async (req
   return res.status(501).json({ error: "Not implemented" });
 });
 
+// POST /api/bookings
+//   1) requireAuth → must be logged in
+//   2) Check that the User’s status is “APPROVED”
+//   3) Check that the User has no existing “active” booking
+//   4) Create a new booking document
+// -----------------------------------------------------------
+app.post("/api/bookings", requireAuth, async (req, res) => {
+  try {
+    const userEmail = req.session.user.email;
+
+    // 1) Look up the full User to see if they’re “APPROVED”
+    const user = await User.findOne({ email: userEmail });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    if (user.status !== "APPROVED") {
+      return res.status(403).json({ error: "Your account is not approved to book a van." });
+    }
+
+    // 2) Check if there is any existing booking with status PENDING or CONFIRMED
+    const existing = await Booking.findOne({
+      userEmail,
+      status: { $in: ["PENDING", "CONFIRMED"] }
+    });
+    if (existing) {
+      return res
+        .status(400)
+        .json({ error: "You already have an active van booking." });
+    }
+
+    // 3) Validate required fields from req.body
+    const {
+      projectName,
+      pickupDate,
+      pickupTime,
+      numberOfVans,
+      returnDate,
+      returnTime,
+      siteName,
+      siteAddress,
+      within75Miles,
+      tripPurpose
+    } = req.body;
+
+    if (
+      !projectName ||
+      !pickupDate ||
+      !pickupTime ||
+      !numberOfVans ||
+      !returnDate ||
+      !returnTime ||
+      !siteName ||
+      !siteAddress ||
+      typeof tripPurpose !== "string"
+    ) {
+      return res.status(400).json({ error: "Missing required booking fields." });
+    }
+
+    // 4) Create the new booking
+    const newBooking = await Booking.create({
+      userEmail,
+      projectName,
+      pickupDate: new Date(pickupDate),
+      pickupTime,
+      numberOfVans,
+      returnDate: new Date(returnDate),
+      returnTime,
+      siteName,
+      siteAddress,
+      within75Miles: Boolean(within75Miles),
+      tripPurpose,
+      status: "PENDING" // this is the default
+    });
+
+    return res.status(201).json({
+      message: "Van booking created successfully.",
+      booking: newBooking
+    });
+  } catch (err) {
+    console.error("Error in POST /api/bookings:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 // -----------------------------------------------------------
 // 12) Connect to MongoDB & start Express
 // -----------------------------------------------------------
