@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-
+import { Link } from 'react-router-dom';
+import "../styles/driver-application.css"
 
 
 const DriverApplication = () => {
@@ -45,7 +46,7 @@ const DriverApplication = () => {
   const form = e.target;
 
   const payload = {
-    fullName: form[0].value.trim(),
+    fullName: form[0].value.trim(), // ← Will be stored in user.name (not in driverApplication document)
     licenseNumber: form[1].value.trim(),
     licenseState: form[2].value.trim(),
     phoneNumber: form[3].value.trim(),
@@ -123,21 +124,87 @@ const DriverApplication = () => {
         <h1 className="w-full max-w-[1097px] text-[#5937E0] font-work-sans text-[50px] font-bold leading-normal mb-5 md:text-[40px] sm:text-[28px] sm:mb-4">
           Approved Driver Application
         </h1>
-
-        <p className="w-full max-w-[1114px] text-black font-work-sans text-xl font-normal leading-normal mb-10 md:text-lg sm:text-base sm:mb-[30px]">
-          Create a UCLA WorkSafe profile at
-          https://worksafe.ucla.edu/UCLA/Programs/Standard/Control/elmLearner.wml
-          Submit a Driver Safety Training request at
-          https://app.smartsheet.com/b/form?EQBCT=2218571313824a20927052602c1df717
-          (it takes around ~2 business dats for UCLA WorkSafe to assign you the
-          Driver Safety Training (DST) module). Complete the Driver Safety
-          Training (DST) to obtain certificate if you have not in the last 2
-          years. Else, just download your existing certificate and state the
-          date of completion. Watch CSC Transportation's training video embedded
-          in the <span className="font-bold text-[#5937E0]">Resources</span>{" "}
-          page Once done with 1-4, Complete the form below to request permission
-          to drive CSC van for your project.
+        <p className="w-full max-w-[1114px] text-black font-work-sans text-xl font-normal leading-normal mb-2 md:text-lg sm:text-base sm:mb-[5px]">
+          Get approved in 5 steps:
         </p>
+        {
+          <ol className="w-full max-w-[1114px] text-black font-work-sans text-xl font-normal leading-normal mb-10 md:text-lg sm:text-base sm:mb-[30px] list-decimal list-inside">
+            <li className="mb-2">
+              Create a UCLA WorkSafe profile at{" "}
+              <a
+                href="https://worksafe.ucla.edu/UCLA/Programs/Standard/Control/elmLearner.wml"
+                className="underline decoration-1 underline-offset-2 text-blue-600 hover:bg-blue-100 transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                https://worksafe.ucla.edu/UCLA/Programs/Standard/Control/elmLearner.wml
+              </a>
+              {". "}
+            </li>
+            <li className="mb-2">
+              Submit a Driver Safety Training (DST) request at{" "}
+              <a
+                href="https://app.smartsheet.com/b/form?EQBCT=2218571313824a20927052602c1df717"
+                className="underline decoration-1 underline-offset-2 text-blue-600 hover:bg-blue-100 transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                https://app.smartsheet.com/b/form?EQBCT=2218571313824a20927052602c1df717
+              </a>
+              {". "}
+              <span className="indenT">It takes around ~2 business days for UCLA WorkSafe to assign you the DST module.</span>
+            </li>
+            <li className="mb-2">
+              Complete the Driver Safety Training (DST) to obtain a certificate if you have not in the last 2 years.{" "}
+              <span className="indenT">Else, just download your existing certificate and state the date of completion.</span>
+            </li>
+            <li className="mb-2">
+              Watch CSC Transportation's training video embedded in the{" "}
+              <Link
+                to="/resources"
+                className="font-bold text-[#5937E0] underline decoration-1 underline-offset-2 hover:bg-purple-100 transition-colors"
+              >
+                Resources
+              </Link>{" "}
+              page.
+            </li>
+            <li className="mb-2">
+              Once done with 1-4, complete the form below to request permission to drive the CSC van for your project.
+            </li>
+          </ol>        
+        /* <p className="w-full max-w-[1114px] text-black font-work-sans text-xl font-normal leading-normal mb-10 md:text-lg sm:text-base sm:mb-[30px]">
+          Get approved in 5 steps:
+          <br></br>
+          1. Create a UCLA WorkSafe profile at{" "}
+          <a
+            href="https://worksafe.ucla.edu/UCLA/Programs/Standard/Control/elmLearner.wml"
+            className="underline decoration-1 underline-offset-2 text-blue-600 hover:bg-blue-100 transition-colors"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            https://worksafe.ucla.edu/UCLA/Programs/Standard/Control/elmLearner.wml
+          </a>{". "} <br></br>
+          2. Submit a Driver Safety Training (DST) request at{" "}
+          <a
+            href="https://app.smartsheet.com/b/form?EQBCT=2218571313824a20927052602c1df717"
+            className="underline decoration-1 underline-offset-2 text-blue-600 hover:bg-blue-100 transition-colors"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            https://app.smartsheet.com/b/form?EQBCT=2218571313824a20927052602c1df717
+          </a>{". "}
+          <span className="indenT">It takes around ~2 business days for UCLA WorkSafe to assign you the DST module.</span>
+          <br></br>
+          3. Complete the Driver Safety Training (DST) to obtain a certificate if you have not in the last 2 years. <br />
+          <span className="indenT"> Else, just download your existing certificate and state the date of completion.</span>
+          <br></br>
+          4. Watch CSC Transportation's training video embedded in the{" "}
+          <Link to="/resources" className="font-bold text-[#5937E0] underline decoration-1 underline-offset-2 hover:bg-purple-100 transition-colors">          
+            Resources
+          </Link>{" "} page.
+          <br></br>
+          5. Once done with 1-4, complete the form below to request permission to drive the CSC van for your project.
+        </p> */}
 
         <form onSubmit={handleSubmit} className="w-full max-w-[1114px] border-[3px] border-[#EBEAED] rounded-[10px] p-10 md:p-[30px] sm:p-5">
           <div className="flex flex-col gap-[30px] sm:gap-5">
@@ -289,14 +356,14 @@ const DriverApplication = () => {
               </div>
             </div>
 
-            <p className="text-black font-roboto text-[13px] font-normal leading-5 underline">
+            <p className="text-black font-roboto text-[13px] font-normal leading-5">
               *To access a copy of your DMV record, please visit
-              <a
+              {" "} <a
                 href="https://www.dmv.ca.gov/portal/customer-service/request-vehicle-or-driver-records/online-driver-record-request/"
-                className="underline"
+                className="underline decoration-1 underline-offset-2 text-blue-600 hover:bg-blue-100 transition-colors"
               >
                 https://www.dmv.ca.gov/portal/customer-service/request-vehicle-or-driver-records/online-driver-record-request/
-              </a>
+              </a> {" "}
               or your respective state's DMV website. Log in to your account and
               request a driver's record. There may be a DMV fee of $2-$4
               depending on your individual record. CSC will NOT reimburse this

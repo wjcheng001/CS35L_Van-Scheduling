@@ -67,7 +67,9 @@ export default function Header() {
             className="logo-image"
             alt="CSCVAN Logo"
           />
-          <span className="logo-text">CSCVAN</span>
+          <span className="logo-text" style={{ whiteSpace: "nowrap" }}>
+            CSC Transportation
+          </span>
         </Link>
 
         <nav className="main-nav">

@@ -195,7 +195,7 @@ export default function Dashboard() {
             onClick={() => navigate("/admin")}
             className="px-4 py-2 bg-[#5937e0] text-white rounded hover:bg-purple-700 mb-4"
           >
-            Enter Admin
+            Admin Mode
           </button>
         </div>
       )}

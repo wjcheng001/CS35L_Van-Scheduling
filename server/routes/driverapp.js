@@ -47,8 +47,9 @@ router.post("/process", requireAuth, async (req, res) => {
     }
 
     // Store the application
+    user.name = fullName;
+
     user.driverApplication = {
-      fullName,
       licenseNumber,
       licenseState,
       phoneNumber,

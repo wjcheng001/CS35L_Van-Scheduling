@@ -69,6 +69,12 @@ const userSchema = new mongoose.Schema(
           `${props.value} is not a valid UCLA email address. Please use your UCLA email address.`,
       },
     },
+    name: {
+      type: String,
+      default: "",
+      required: true,
+    },
+
     uid: {
       type: Number,
       required: true,
