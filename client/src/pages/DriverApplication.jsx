@@ -13,7 +13,7 @@ const DriverApplication = () => {
   useEffect(() => {
     const checkSubmission = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/auth/findpriorApp", {
+        const res = await fetch("http://localhost:3000/api/driverapp/findpriorApp", {
           credentials: "include",
         });
         if (res.ok) {
