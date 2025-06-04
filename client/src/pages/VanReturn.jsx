@@ -119,6 +119,7 @@ const VanReturn = () => {
     // Check fuel level
     if (formData.fuelLevel && Number(formData.fuelLevel) < 75) {
       alert("Please refuel before return.");
+      return;
     }
 
     // Validate photos for non-admins

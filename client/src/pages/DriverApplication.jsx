@@ -4,6 +4,26 @@ import Footer from "../components/Footer";
 import { Link } from 'react-router-dom';
 import "../styles/driver-application.css"
 
+// List of U.S. state codes
+const usStates = [
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
+];
+
+// List of project names
+const projects = [
+  "AATP", "AMSA", "BARC", "Best Buddies", "BFPC", "Bruin Hope",
+  "Bruin Initiative", "Bruin Partners", "Bruin Shelter", "CHAMPs",
+  "Expressive Movement Initiative", "Fitnut (formerly SCOPE)", "GCGP",
+  "GMT", "Habitat for Humanity", "Hunger Project", "KDSAP", "Kids Korner",
+  "Medlife", "PCH", "PREP", "Project Literacy", "Project Lux",
+  "Special Olympics", "Swipe Out Hunger", "The Bruin Experiment",
+  "UNICEF", "VCH", "VITA", "Watts", "Writer's Den", "WYSE", "CSC"
+];
+
 const DriverApplication = () => {
   // States for handleSubmit, guard against double submission
   const [hasSubmittedBefore, setHasSubmittedBefore] = useState(false);
@@ -13,6 +33,17 @@ const DriverApplication = () => {
   const [certificateFile, setCertificateFile] = useState(null);
   const dmvInputRef = useRef(null);
   const certificateInputRef = useRef(null);
+  
+  // States for license state autocomplete
+  const [licenseState, setLicenseState] = useState("");
+  const [stateSuggestions, setStateSuggestions] = useState([]);
+  const [showStateSuggestions, setShowStateSuggestions] = useState(false);
+
+  // States for project multi-select
+  const [projectInput, setProjectInput] = useState("");
+  const [selectedProjects, setSelectedProjects] = useState([]);
+  const [projectSuggestions, setProjectSuggestions] = useState([]);
+  const [showProjectSuggestions, setShowProjectSuggestions] = useState(false);
 
   // Guard against double submission and check admin status
   useEffect(() => {
@@ -45,6 +76,74 @@ const DriverApplication = () => {
     checkSubmissionAndAdmin();
   }, []);
 
+  // Handle license state input change
+  const handleLicenseStateChange = (e) => {
+    const value = e.target.value.toUpperCase();
+    setLicenseState(value);
+
+    if (value) {
+      const filteredStates = usStates.filter((state) =>
+        state.toUpperCase().startsWith(value)
+      );
+      setStateSuggestions(filteredStates);
+      setShowStateSuggestions(true);
+    } else {
+      setStateSuggestions([]);
+      setShowStateSuggestions(false);
+    }
+  };
+
+  // Handle license state suggestion selection
+  const handleStateSuggestionClick = (state) => {
+    setLicenseState(state);
+    setStateSuggestions([]);
+    setShowStateSuggestions(false);
+  };
+
+  // Handle project input change
+  const handleProjectInputChange = (e) => {
+    const value = e.target.value;
+    setProjectInput(value);
+
+    if (value) {
+      const filteredProjects = projects.filter((project) =>
+        project.toLowerCase().startsWith(value.toLowerCase())
+      );
+      setProjectSuggestions(filteredProjects);
+      setShowProjectSuggestions(true);
+    } else {
+      setProjectSuggestions([]);
+      setShowProjectSuggestions(false);
+    }
+  };
+
+  // Handle project selection (from suggestions or custom input)
+  const handleProjectSelect = (project) => {
+    if (selectedProjects.length >= 3) {
+      alert("You can select up to 3 projects only.");
+      return;
+    }
+    if (!selectedProjects.includes(project)) {
+      setSelectedProjects([...selectedProjects, project]);
+    }
+    setProjectInput("");
+    setProjectSuggestions([]);
+    setShowProjectSuggestions(false);
+  };
+
+  // Handle Enter key for project input
+  const handleProjectKeyDown = (e) => {
+    if (e.key === "Enter" && projectInput) {
+      e.preventDefault(); // Prevent form submission
+      handleProjectSelect(projectInput.trim());
+    }
+  };
+
+  // Handle project removal
+  const handleProjectRemove = (projectToRemove) => {
+    setSelectedProjects(selectedProjects.filter((project) => project !== projectToRemove));
+  };
+
   // Handle file input changes
   const handleFileChange = (e, setFile, inputRef) => {
     const file = e.target.files[0];
@@ -76,9 +175,9 @@ const DriverApplication = () => {
     const payload = {
       fullName: formData.get("fullName")?.trim(),
       licenseNumber: formData.get("licenseNumber")?.trim(),
-      licenseState: formData.get("licenseState")?.trim(),
+      licenseState: licenseState,
       phoneNumber: formData.get("phoneNumber")?.trim(),
-      project: formData.get("project")?.trim(),
+      project: selectedProjects.join(", "), // Join projects into a string
       licenseExpiry: formData.get("licenseExpiry"),
       dob: formData.get("dob"),
       drivingPoints: formData.get("drivingPoints"),
@@ -240,15 +339,31 @@ const DriverApplication = () => {
                 />
               </div>
 
-              <div className="flex flex-col gap-2 w-[234px] md:w-[calc(50%-10px)] sm:w-full">
+              <div className="flex flex-col gap-2 w-[234px] md:w-[calc(50%-10px)] sm:w-full relative">
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
                   Driver's License STATE
                 </label>
                 <input
                   type="text"
                   name="licenseState"
+                  value={licenseState}
+                  onChange={handleLicenseStateChange}
                   className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
+                  autoComplete="off"
                 />
+                {showStateSuggestions && stateSuggestions.length > 0 && (
+                  <ul className="absolute top-[70px] left-0 w-full bg-white border-2 border-black rounded-[10px] max-h-[150px] overflow-y-auto z-10">
+                    {stateSuggestions.map((state) => (
+                      <li
+                        key={state}
+                        onClick={() => handleStateSuggestionClick(state)}
+                        className="px-4 py-2 text-black font-roboto text-sm cursor-pointer hover:bg-[#5937E0] hover:text-white transition-colors"
+                      >
+                        {state}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
 
@@ -265,15 +380,51 @@ const DriverApplication = () => {
                 />
               </div>
 
-              <div className="flex flex-col gap-2 w-[333px] md:w-[calc(50%-10px)] sm:w-full">
+              <div className="flex flex-col gap-2 w-[333px] md:w-[calc(50%-10px)] sm:w-full relative">
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
-                  Project(s) you will be driving for
+                  Project(s) you will be driving for (up to 3)
                 </label>
                 <input
                   type="text"
                   name="project"
+                  value={projectInput}
+                  onChange={handleProjectInputChange}
+                  onKeyDown={handleProjectKeyDown}
                   className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
+                  autoComplete="off"
                 />
+                {showProjectSuggestions && projectSuggestions.length > 0 && (
+                  <ul className="absolute top-[70px] left-0 w-full bg-white border-2 border-black rounded-[10px] max-h-[150px] overflow-y-auto z-10">
+                    {projectSuggestions.map((project) => (
+                      <li
+                        key={project}
+                        onClick={() => handleProjectSelect(project)}
+                        className="px-4 py-2 text-black font-roboto text-sm cursor-pointer hover:bg-[#5937E0] hover:text-white transition-colors"
+                      >
+                        {project}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {selectedProjects.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {selectedProjects.map((project) => (
+                      <div
+                        key={project}
+                        className="flex items-center bg-[#5937E0] text-white font-roboto text-sm px-3 py-1 rounded-full"
+                      >
+                        {project}
+                        <button
+                          type="button"
+                          onClick={() => handleProjectRemove(project)}
+                          className="ml-2 text-white hover:text-red-200"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col gap-2 w-[254px] md:w-[calc(50%-10px)] sm:w-full">

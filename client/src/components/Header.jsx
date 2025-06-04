@@ -65,7 +65,7 @@ export default function Header() {
 
     try {
       setLoading(true);
-      // 1) Check login + status
+      // Check login + status
       const authRes = await fetch("/api/auth/status", {
         method: "GET",
         credentials: "include",
@@ -86,22 +86,31 @@ export default function Header() {
         return;
       }
 
-      // 3) Now check if they already have an active booking
-      const bookingsRes = await fetch("/api/bookings", {
+      // Check for confirmed bookings
+      const bookingsRes = await fetch("/api/bookings/data", {
         method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
       });
       if (!bookingsRes.ok) {
+        console.error("Failed to fetch bookings:", bookingsRes.statusText);
         alert("Could not verify existing bookings. Please try again later.");
         return;
       }
       const bookingsData = await bookingsRes.json();
-      if (bookingsData.bookings.length !== 0) {
-        const confirmProceed = window.confirm("You already have an active van booking. Do you want to continue?");
-        if (!confirmProceed) return;
+      if (bookingsData.bookings && Array.isArray(bookingsData.bookings)) {
+        const hasConfirmedBooking = bookingsData.bookings.some(
+          (booking) => booking.status === "CONFIRMED"
+        );
+        if (hasConfirmedBooking) {
+          const confirmProceed = window.confirm(
+            "You already have a confirmed van booking. Do you want to continue?"
+          );
+          if (!confirmProceed) return;
+        }
       }
-      // 4) All checks passed → send them to the booking form
+
+      // All checks passed → send to booking form
       navigate("/reserve");
     } catch (err) {
       console.error("Error during booking check:", err);
