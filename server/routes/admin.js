@@ -15,7 +15,7 @@ router.get("/users", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-router.get("/role", requireAuth, requireAdmin, async (req, res) => {
+router.get("/role", requireAuth, async (req, res) => {
   try {
     // Get the logged‐in user’s email from session
     const userEmail = req.session.user.email;

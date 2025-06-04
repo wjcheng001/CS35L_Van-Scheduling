@@ -96,6 +96,7 @@ function ReturnCard({ ret }) {
 // ------------ Dashboard Component ------------
 export default function Dashboard() {
   const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null);
   const [status, setStatus] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [returns, setReturns] = useState([]); // ← Declare `returns` state
@@ -114,6 +115,20 @@ export default function Dashboard() {
         }
         const sessionData = await sessionRes.json();
         setUser(sessionData.user);
+
+        const roleRes = await fetch("http://localhost:3000/api/admin/role", {
+          credentials: "include",
+        });
+        if (!roleRes.ok) {
+          navigate("/");
+          return;
+        }
+        const roleData = await roleRes.json();
+        console.log(roleData);
+        setRole(roleData.user.role);
+
+
+
 
         // 2) Fetch user.status
         const statusRes = await fetch("http://localhost:3000/api/auth/status", {
@@ -174,12 +189,23 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Header />
+      {role === "admin" && (
+        <div className="mt-4 ml-4 w-full flex items-center justify-center">
+          <button
+            onClick={() => navigate("/admin")}
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 mb-4"
+          >
+            Enter Admin
+          </button>
+        </div>
+      )}
 
       <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome + subtitle */}
         <h1 className="text-4xl font-extrabold text-purple-600 mb-2">
           Welcome{user ? `, ${user.name}` : ""}!
         </h1>
+
         <p className="text-gray-500 mb-6">Here’s your driver application status.</p>
 
         {/* StatusBanner */}
