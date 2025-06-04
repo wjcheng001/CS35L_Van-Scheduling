@@ -53,7 +53,7 @@ const VanReservation = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost:3000/api/bookings", {
+      const res = await fetch("http://localhost:3000/api/bookings/data", {
         method: "POST",
         credentials: "include", // <— send the session cookie
         headers: { "Content-Type": "application/json" },

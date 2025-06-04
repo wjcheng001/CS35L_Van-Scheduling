@@ -128,7 +128,7 @@ export default function Dashboard() {
         setStatus(statusData.status);
 
         // 3) Fetch bookings
-        const bookingsRes = await fetch("http://localhost:3000/api/bookings", {
+        const bookingsRes = await fetch("http://localhost:3000/api/bookings/data", {
           credentials: "include",
         });
         if (bookingsRes.ok) {
