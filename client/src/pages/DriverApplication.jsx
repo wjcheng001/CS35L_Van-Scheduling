@@ -330,6 +330,7 @@ const DriverApplication = () => {
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
                   DMV Pull
                 </label>
+                <p className="text-black font-work-sans text-sm leading-[26px]">Accept jpeg, png, or gif</p>
                 <div className="relative">
                   <input
                     type="file"
@@ -363,6 +364,7 @@ const DriverApplication = () => {
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
                   UCLA Worksafe Driver safety training Certificate
                 </label>
+                <p className="text-black font-work-sans text-sm leading-[26px]">Accept jpeg, png, or gif</p>
                 <div className="relative">
                   <input
                     type="file"
