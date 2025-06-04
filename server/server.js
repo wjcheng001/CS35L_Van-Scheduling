@@ -5,18 +5,9 @@ const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const mongoose = require("mongoose");
 const { OAuth2Client } = require("google-auth-library");
-const User = require("./models/User");
-const Booking = require("./models/Booking");
-const Return = require("./models/Return"); // ← Import the Return model
 const secrets = require("./secrets.js");
 const Van = require("./models/Van");
 
-// Middlewares
-const requireAuth = require("./middlewares/requireAuth.js");
-const requireAdmin = require("./middlewares/requireAdmin.js");
-
-
-const ADMIN_EMAILS = ["transportation@uclacsc.org", "wanjun01@g.ucla.edu"];
 const VAN_IDS = [
   4116,
   4367,
@@ -62,28 +53,13 @@ const authRoutes = require("./routes/auth");
 const driverApplicationRoutes = require("./routes/driverapp");
 const adminRoutes = require("./routes/admin");
 const bookingRoutes = require("./routes/booking");
+const returnsRoutes = require("./routes/returns");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/driverapp", driverApplicationRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/bookings", bookingRoutes);
-
-
-// -----------------------------------------------------------
-// 10) NEW: GET /api/returns → return user’s “van returns”
-// -----------------------------------------------------------
-app.get("/api/returns", requireAuth, async (req, res) => {
-  try {
-    const userEmail = req.session.user.email;
-    const returns = await Return.find({ userEmail }).sort({ pickupDate: -1 }).lean();
-    return res.json({ returns });
-  } catch (err) {
-    console.error("Error in /api/returns:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
-
-
+app.use("/api", returnsRoutes);
 
 mongoose
   .connect(process.env.MONGO_URI || "mongodb://localhost:27017/35ldb", {
