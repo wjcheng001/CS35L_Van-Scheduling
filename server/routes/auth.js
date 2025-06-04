@@ -37,7 +37,7 @@ router.post("/google", async (req, res) => {
     if (!user) { // First time login
       user = await User.create({
         email,
-        uid: 0, 
+        uid: 0,
         role: ADMIN_EMAILS.includes(email) ? "admin" : "user",
         status: "NOT_SUBMITTED",
       });

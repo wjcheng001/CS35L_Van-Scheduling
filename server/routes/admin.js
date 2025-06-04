@@ -33,7 +33,7 @@ router.post("/approve-user", requireAuth, requireAdmin, async (req, res) => {
       { $set: { status: "APPROVED" } },
     );
     if (!user) {
-      return res.status(404).json({ error: "User not found" });  
+      return res.status(404).json({ error: "User not found" });
     }
     return res.json({ message: "User approved successfully" });
   } catch (error) {
