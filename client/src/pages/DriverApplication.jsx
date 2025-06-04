@@ -1,8 +1,119 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
+
+
 const DriverApplication = () => {
+  // states for handleSubmit below, guard against double submission
+  const [hasSubmittedBefore, setHasSubmittedBefore] = useState(false);
+  const [showOverride, setShowOverride] = useState(false);
+  
+  // guard against double submission
+  useEffect(() => {
+    const checkSubmission = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/api/auth/findpriorApp", {
+          credentials: "include",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.hasDriverApplication) {
+            setHasSubmittedBefore(true);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check prior submission:", err);
+      }
+    };
+
+    checkSubmission();
+  }, []);
+
+  // When user press submit submit
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (hasSubmittedBefore && !showOverride) {
+    const confirm = window.confirm(
+      "You have already submitted an application. Submitting again will overwrite your previous submission.\n\nDo you want to continue?"
+    );
+    if (!confirm) return;
+    setShowOverride(true);
+  }
+
+  const form = e.target;
+
+  const payload = {
+    fullName: form[0].value.trim(),
+    licenseNumber: form[1].value.trim(),
+    licenseState: form[2].value.trim(),
+    phoneNumber: form[3].value.trim(),
+    project: form[4].value.trim(),
+    licenseExpiry: form[5].value,
+    dob: form[6].value,
+    drivingPoints: form[7].value,
+    dstDate: form[8].value,
+  };
+
+  // ## Validation of Non-null fields START ###
+  // Validate main fields
+  for (const [key, value] of Object.entries(payload)) {
+    if (!value) {
+      alert(`Please fill out the "${key}" field.`);
+      return;
+    }
+  }
+
+  // Validate checkboxes (assumes 4 checkboxes in order)
+  const checkboxes = [
+    form[9],
+    form[10],
+    form[11],
+    form[12],
+  ];
+
+  const unchecked = checkboxes.findIndex(cb => !cb.checked);
+  if (unchecked !== -1) {
+    alert("Please check all acknowledgments before submitting.");
+    return;
+  }
+
+  // Validate signature field (assumes it's form[13])
+  const signature = form[13].value.trim();
+  if (!signature) {
+    alert("Please enter your full name as a legally binding signature.");
+    return;
+  }
+
+  // ## Validation of Non-null fields END ###
+
+  try {
+    const res = await fetch("http://localhost:3000/api/driverapp/process", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert("Submission failed: " + (data.error || "Unknown error"));
+    } else {
+      alert("Submitted successfully");
+      window.location.href = "/dashboard";  // redirect to dashboard for successful submission
+    }
+  } catch (err) {
+    console.error("Submission error:", err);
+    alert("An error occurred. Check console.");
+  }
+};
+
+  /* ################################## DESIGN ELEMENTS ################################## */
+
   return (
     <div className="w-full min-h-screen bg-white flex flex-col">
       <Header />
@@ -28,7 +139,7 @@ const DriverApplication = () => {
           to drive CSC van for your project.
         </p>
 
-        <form className="w-full max-w-[1114px] border-[3px] border-[#EBEAED] rounded-[10px] p-10 md:p-[30px] sm:p-5">
+        <form onSubmit={handleSubmit} className="w-full max-w-[1114px] border-[3px] border-[#EBEAED] rounded-[10px] p-10 md:p-[30px] sm:p-5">
           <div className="flex flex-col gap-[30px] sm:gap-5">
             {/* First Row */}
             <div className="flex flex-wrap gap-5 sm:gap-4">

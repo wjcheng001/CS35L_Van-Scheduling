@@ -113,22 +113,11 @@ app.post("/api/auth/google", async (req, res) => {
 // -----------------------------------------------------------
 // 4) GET /api/auth/session → return { user } if logged in, else 401
 // -----------------------------------------------------------
-app.get("/api/auth/session", async (req, res) => {
+app.get("/api/auth/session", (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Not logged in" });
   }
-  try {
-  const user = await User.findOne({ email: req.session.user.email }).lean();
-  if (!user) {
-    return res.status(404).json({ error: "User not found" });
-  }
-
-  const hasDriverApplication = user.driverApplication != null && Object.keys(user.driverApplication).length > 0;
-  return res.json({ hasDriverApplication });
-} catch (err) {
-  console.error("Error in /api/auth/session:", err);
-  return res.status(500).json({ error: "Server error" });
-}
+  return res.json({ user: req.session.user });
 });
 
 // -----------------------------------------------------------
@@ -295,6 +284,27 @@ mongoose
 /* #############################
           DRIVER APPROVAL APIs
 ############################# */
+
+// -----------------------------------------------------------
+// GET /api/auth/findpriorApp
+// -----------------------------------------------------------
+app.get("/api/auth/findpriorApp", async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Not logged in" });
+  }
+  try {
+  const user = await User.findOne({ email: req.session.user.email }).lean();
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  const hasDriverApplication = user.driverApplication != null && Object.keys(user.driverApplication).length > 0;
+  return res.json({ hasDriverApplication });
+} catch (err) {
+  console.error("Error in /api/auth/session:", err);
+  return res.status(500).json({ error: "Server error" });
+}
+});
 
 app.post("/api/driverapp/process", requireAuth, async (req, res) => {
   try {

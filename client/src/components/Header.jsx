@@ -22,6 +22,10 @@ export default function Header() {
             Dashboard
           </Link>
           <div className="nav-spacer"></div>
+          <Link to="/app" className="nav-item">
+            Driver Application
+          </Link>
+          <div className="nav-spacer"></div>
           <Link to="/contact" className="nav-item">
             Contact Us
           </Link>
