@@ -2,13 +2,11 @@ import React, { useEffect, useState } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
-
-
 const DriverApplication = () => {
   // states for handleSubmit below, guard against double submission
   const [hasSubmittedBefore, setHasSubmittedBefore] = useState(false);
   const [showOverride, setShowOverride] = useState(false);
-  
+
   // guard against double submission
   useEffect(() => {
     const checkSubmission = async () => {
@@ -30,87 +28,81 @@ const DriverApplication = () => {
     checkSubmission();
   }, []);
 
-  // When user press submit submit
+  // When user press submit
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (hasSubmittedBefore && !showOverride) {
-    const confirm = window.confirm(
-      "You have already submitted an application. Submitting again will overwrite your previous submission.\n\nDo you want to continue?"
-    );
-    if (!confirm) return;
-    setShowOverride(true);
-  }
+    if (hasSubmittedBefore && !showOverride) {
+      const confirm = window.confirm(
+        "You have already submitted an application. Submitting again will overwrite your previous submission.\n\nDo you want to continue?"
+      );
+      if (!confirm) return;
+      setShowOverride(true);
+    }
 
-  const form = e.target;
+    const form = e.target;
 
-  const payload = {
-    fullName: form[0].value.trim(),
-    licenseNumber: form[1].value.trim(),
-    licenseState: form[2].value.trim(),
-    phoneNumber: form[3].value.trim(),
-    project: form[4].value.trim(),
-    licenseExpiry: form[5].value,
-    dob: form[6].value,
-    drivingPoints: form[7].value,
-    dstDate: form[8].value,
-  };
+    const payload = {
+      fullName: form[0].value.trim(),
+      licenseNumber: form[1].value.trim(),
+      licenseState: form[2].value.trim(),
+      phoneNumber: form[3].value.trim(),
+      project: form[4].value.trim(),
+      licenseExpiry: form[5].value,
+      dob: form[6].value,
+      drivingPoints: form[7].value,
+      dstDate: form[8].value,
+    };
 
-  // ## Validation of Non-null fields START ###
-  // Validate main fields
-  for (const [key, value] of Object.entries(payload)) {
-    if (!value) {
-      alert(`Please fill out the "${key}" field.`);
+    // ## Validation of Non-null fields START ###
+    // Validate main fields
+    for (const [key, value] of Object.entries(payload)) {
+      if (!value) {
+        alert(`Please fill out the "${key}" field.`);
+        return;
+      }
+    }
+
+    // Validate checkboxes (assumes 4 checkboxes in order)
+    const checkboxes = [form[9], form[10], form[11], form[12]];
+
+    const unchecked = checkboxes.findIndex((cb) => !cb.checked);
+    if (unchecked !== -1) {
+      alert("Please check all acknowledgments before submitting.");
       return;
     }
-  }
 
-  // Validate checkboxes (assumes 4 checkboxes in order)
-  const checkboxes = [
-    form[9],
-    form[10],
-    form[11],
-    form[12],
-  ];
-
-  const unchecked = checkboxes.findIndex(cb => !cb.checked);
-  if (unchecked !== -1) {
-    alert("Please check all acknowledgments before submitting.");
-    return;
-  }
-
-  // Validate signature field (assumes it's form[13])
-  const signature = form[13].value.trim();
-  if (!signature) {
-    alert("Please enter your full name as a legally binding signature.");
-    return;
-  }
-
-  // ## Validation of Non-null fields END ###
-
-  try {
-    const res = await fetch("http://localhost:3000/api/driverapp/process", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      alert("Submission failed: " + (data.error || "Unknown error"));
-    } else {
-      alert("Submitted successfully");
-      window.location.href = "/dashboard";  // redirect to dashboard for successful submission
+    // Validate signature field (assumes it's form[13])
+    const signature = form[13].value.trim();
+    if (!signature) {
+      alert("Please enter your full name as a legally binding signature.");
+      return;
     }
-  } catch (err) {
-    console.error("Submission error:", err);
-    alert("An error occurred. Check console.");
-  }
-};
+    // ## Validation of Non-null fields END ###
+
+    try {
+      const res = await fetch("http://localhost:3000/api/driverapp/process", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert("Submission failed: " + (data.error || "Unknown error"));
+      } else {
+        alert("Submitted successfully");
+        window.location.href = "/dashboard"; // redirect to dashboard for successful submission
+      }
+    } catch (err) {
+      console.error("Submission error:", err);
+      alert("An error occurred. Check console.");
+    }
+  };
 
   /* ################################## DESIGN ELEMENTS ################################## */
 
@@ -139,7 +131,10 @@ const DriverApplication = () => {
           to drive CSC van for your project.
         </p>
 
-        <form onSubmit={handleSubmit} className="w-full max-w-[1114px] border-[3px] border-[#EBEAED] rounded-[10px] p-10 md:p-[30px] sm:p-5">
+        <form
+          onSubmit={handleSubmit}
+          className="w-full max-w-[1114px] border-[3px] border-[#EBEAED] rounded-[10px] p-10 md:p-[30px] sm:p-5"
+        >
           <div className="flex flex-col gap-[30px] sm:gap-5">
             {/* First Row */}
             <div className="flex flex-wrap gap-5 sm:gap-4">
@@ -149,7 +144,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="text"
-                  className="w-full h-[43px] rounded-[100px] border-2 border-black"
+                  className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
 
@@ -159,7 +154,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="text"
-                  className="w-full h-[43px] rounded-[100px] border-2 border-black"
+                  className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
 
@@ -169,7 +164,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="text"
-                  className="w-full h-[43px] rounded-[100px] border-2 border-black"
+                  className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
             </div>
@@ -182,7 +177,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="tel"
-                  className="w-full h-[43px] rounded-[100px] border-2 border-black"
+                  className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
 
@@ -192,7 +187,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="text"
-                  className="w-full h-[43px] rounded-[100px] border-2 border-black"
+                  className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
 
@@ -202,7 +197,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="date"
-                  className="w-full h-[43px] rounded-[100px] border-2 border-black"
+                  className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
             </div>
@@ -215,7 +210,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="date"
-                  className="w-full h-[43px] rounded-[100px] border-2 border-black"
+                  className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
 
@@ -225,7 +220,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="number"
-                  className="w-full h-[43px] rounded-[100px] border-2 border-black"
+                  className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
 
@@ -235,7 +230,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="date"
-                  className="w-full h-[43px] rounded-[100px] border-2 border-black"
+                  className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
             </div>
@@ -246,46 +241,22 @@ const DriverApplication = () => {
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
                   DMV Pull
                 </label>
-                <div className="w-full h-[179px] rounded-[39px] border-2 border-black flex justify-center items-center">
-                  <svg
-                    width="43"
-                    height="44"
-                    viewBox="0 0 43 44"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M37.625 27.1801V34.2516C37.625 35.1893 37.2475 36.0886 36.5755 36.7517C35.9035 37.4148 34.992 37.7873 34.0417 37.7873H8.95833C8.00797 37.7873 7.09654 37.4148 6.42453 36.7517C5.75253 36.0886 5.375 35.1893 5.375 34.2516V27.1801M30.4583 14.805L21.5 5.96558M21.5 5.96558L12.5417 14.805M21.5 5.96558V27.1801"
-                      stroke="#1E1E1E"
-                      strokeWidth="4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  className="w-full h-[179px] px-4 py-2 rounded-[39px] border-2 border-black"
+                />
               </div>
 
               <div className="flex flex-col gap-2 w-[462px] md:w-[calc(50%-10px)] sm:w-full">
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
                   UCLA Worksafe Driver safety training Certificate
                 </label>
-                <div className="w-full h-[179px] rounded-[29px] border-2 border-black flex justify-center items-center">
-                  <svg
-                    width="43"
-                    height="44"
-                    viewBox="0 0 43 44"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M37.625 27.2199V34.2914C37.625 35.2291 37.2475 36.1284 36.5755 36.7915C35.9035 37.4546 34.992 37.8271 34.0417 37.8271H8.95833C8.00797 37.8271 7.09654 37.4546 6.42453 36.7915C5.75253 36.1284 5.375 35.2291 5.375 34.2914V27.2199M30.4583 14.8447L21.5 6.00537M21.5 6.00537L12.5417 14.8447M21.5 6.00537V27.2199"
-                      stroke="#1E1E1E"
-                      strokeWidth="4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  className="w-full h-[179px] px-4 py-2 rounded-[29px] border-2 border-black"
+                />
               </div>
             </div>
 
@@ -368,7 +339,7 @@ const DriverApplication = () => {
               </label>
               <input
                 type="text"
-                className="w-full h-[43px] rounded-[100px] border-2 border-black"
+                className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
               />
             </div>
 
