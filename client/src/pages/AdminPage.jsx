@@ -50,8 +50,11 @@ const AdminPage = () => {
     checkAdminStatus();
   }, [navigate]);
 
-  const handleApprove = async (uid) => {
+  const handleApprove = async (uid, isAutoapproved, tableType) => {
     try {
+      if (tableType === "allUsers" && isAutoapproved) {
+        alert("Warning: You have not viewed this user's application.");
+      }
       const res = await fetch("http://localhost:3000/api/admin/approve-user", {
         method: "POST",
         credentials: "include",
@@ -116,6 +119,38 @@ const AdminPage = () => {
     navigate('/dashboard');
   };
 
+  const renderAdminVerified = (user) => {
+    if (user.status === "APPROVED") {
+      if (user.isAutoapproved) {
+        return (
+          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-pink-100 text-pink-800">
+            auto-approved
+          </span>
+        );
+      } else {
+        return (
+          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-emerald-100 text-emerald-800">
+            Verified
+          </span>
+        );
+      }
+    } else {
+      return (
+        <span
+          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+            user.status === "PENDING"
+              ? "bg-yellow-100 text-yellow-800"
+              : user.status === "REJECTED"
+              ? "bg-red-100 text-red-800"
+              : "bg-gray-100 text-gray-800"
+          }`}
+        >
+          {user.status || "NONE"}
+        </span>
+      );
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-white">
       <Header />
@@ -171,25 +206,31 @@ const AdminPage = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="pl-10 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UID</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin Verified</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {users.filter(u => u.status === "PENDING").map((user) => (
                       <tr key={user.uid}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="pl-10 px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.uid}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {renderAdminVerified(user)}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
                           <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                            Pending
+                            PENDING
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                           <button
-                            onClick={() => handleApprove(user.uid)}
+                            onClick={() => handleApprove(user.uid, user.isAutoapproved, "pending")}
                             className="text-green-600 hover:text-green-900 mr-4"
                           >
                             Approve
@@ -216,7 +257,8 @@ const AdminPage = () => {
                     <th className="pl-10 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UID</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                    <th className="pl-20 pr-60 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin Verified</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -225,7 +267,10 @@ const AdminPage = () => {
                       <td className="pl-10 px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.uid}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                      <td className="pl-20 pr-54 py-4 whitespace-nowrap text-right">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {renderAdminVerified(user)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                             user.status === "APPROVED"

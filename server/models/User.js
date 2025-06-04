@@ -1,65 +1,32 @@
 const mongoose = require("mongoose");
 
-const emailRegex = /^(.*@(ucla\.edu|g\.ucla\.edu|uclacsc\.org))$/;
+const driverApplicationSchema = new mongoose.Schema({
+  fullName: { type: String },
+  licenseNumber: { type: String },
+  licenseState: { type: String },
+  licenseExpiry: { type: Date },
+  dob: { type: Date },
+  phoneNumber: { type: String },
+  project: { type: String },
+  drivingPoints: { type: Number },
+  dstDate: { type: Date },
+  dmvFileId: { type: mongoose.Schema.Types.ObjectId },
+  certificateFileId: { type: mongoose.Schema.Types.ObjectId },
+});
 
-const driverAppSchema = new mongoose.Schema(
-  {
-    fullName: String,
-    licenseNumber: String,
-    licenseState: String,
-    phoneNumber: String,
-    project: String,
-    licenseExpiry: Date,
-    dob: Date,
-    drivingPoints: Number,
-    dstDate: Date,
-    submittedAt: { type: Date, default: Date.now },
-    dmvFileId: { type: mongoose.Schema.Types.ObjectId, default: null }, // GridFS file ID
-    certificateFileId: { type: mongoose.Schema.Types.ObjectId, default: null }, // GridFS file ID
+const userSchema = new mongoose.Schema({
+  uid: { type: Number, unique: true, required: true },
+  name: { type: String, default: "" }, // name gets filled through driver application
+  email: { type: String, required: true, unique: true },
+  role: { type: String, enum: ["user", "admin"], default: "user" },
+  status: {
+    type: String,
+    enum: ["NOT_SUBMITTED", "PENDING", "APPROVED", "REJECTED"],
+    default: "NOT_SUBMITTED",
   },
-  { _id: false } // prevents a nested _id in subdocument
-);
-
-const userSchema = new mongoose.Schema(
-  {
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      validate: {
-        validator: (value) => emailRegex.test(value),
-        message: (props) =>
-          `${props.value} is not a valid UCLA email address. Please use your UCLA email address.`,
-      },
-    },
-    name: {
-      type: String,
-      default: "",
-      required: true,
-    },
-    uid: {
-      type: Number,
-      required: true,
-      unique: true,
-    },
-    role: {
-      type: String,
-      enum: ["user", "admin"],
-      required: true,
-    },
-    status: {
-      type: String,
-      enum: ["NOT_SUBMITTED", "PENDING", "APPROVED", "REJECTED"],
-      default: "NOT_SUBMITTED",
-      required: true,
-    },
-    isAutoapproved: {
-      type: Boolean,
-      default: false,
-    },
-    driverApplication: driverAppSchema,
-  },
-  { versionKey: false }
-);
+  driverApplication: driverApplicationSchema,
+  isAutoapproved: { type: Boolean, default: false },
+  appReviewed: { type: Boolean, default: false },
+});
 
 module.exports = mongoose.model("User", userSchema);

@@ -41,6 +41,8 @@ router.post("/review-user", requireAuth, requireAdmin, async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
     user.status = action === "approve" ? "APPROVED" : "REJECTED";
+    user.isAutoapproved = false;
+    user.appReviewed = true; // Mark as reviewed
     await user.save();
     return res.json({ message: `User ${action}d`, status: user.status });
   } catch (err) {
@@ -50,11 +52,18 @@ router.post("/review-user", requireAuth, requireAdmin, async (req, res) => {
 });
 
 router.post("/approve-user", requireAuth, requireAdmin, async (req, res) => {
-  const { uid } = req.body;
+  const { uid, fromReviewPage } = req.body;
   try {
+    const update = {
+      status: "APPROVED",
+      isAutoapproved: false,
+    };
+    if (fromReviewPage) {
+      update.appReviewed = true;
+    }
     const user = await User.findOneAndUpdate(
       { uid },
-      { $set: { status: "APPROVED" } },
+      { $set: update },
       { new: true }
     );
     if (!user) {
@@ -68,11 +77,18 @@ router.post("/approve-user", requireAuth, requireAdmin, async (req, res) => {
 });
 
 router.post("/reject-user", requireAuth, requireAdmin, async (req, res) => {
-  const { uid } = req.body;
+  const { uid, fromReviewPage } = req.body;
   try {
+    const update = {
+      status: "REJECTED",
+      isAutoapproved: false,
+    };
+    if (fromReviewPage) {
+      update.appReviewed = true;
+    }
     const user = await User.findOneAndUpdate(
       { uid },
-      { $set: { status: "REJECTED" } },
+      { $set: update },
       { new: true }
     );
     if (!user) {

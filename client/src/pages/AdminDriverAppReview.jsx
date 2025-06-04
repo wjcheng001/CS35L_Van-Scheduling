@@ -38,7 +38,7 @@ const AdminDriverAppReview = () => {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid: Number(uid) }),
+        body: JSON.stringify({ uid: Number(uid), fromReviewPage: true }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -57,7 +57,7 @@ const AdminDriverAppReview = () => {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid: Number(uid) }),
+        body: JSON.stringify({ uid: Number(uid), fromReviewPage: true }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -68,6 +68,10 @@ const AdminDriverAppReview = () => {
     } catch (err) {
       alert("Error rejecting user: " + err.message);
     }
+  };
+
+  const handleCancel = () => {
+    navigate("/admin");
   };
 
   const formatDate = (date) => {
@@ -112,8 +116,11 @@ const AdminDriverAppReview = () => {
         <h1 className="w-full max-w-[1097px] text-[#5937E0] font-work-sans text-[50px] font-bold leading-normal mb-5 md:text-[40px] sm:text-[28px] sm:mb-4">
           Driver Application Review
         </h1>
-        <p className="w-full max-w-[1114px] text-black font-work-sans text-xl font-normal leading-normal mb-10 md:text-lg sm:text-base sm:mb-[30px]">
+        <p className="w-full max-w-[1114px] text-black font-work-sans text-xl font-normal leading-normal mb-2 md:text-lg sm:text-base">
           Reviewing application for {application?.name} (UID: {uid})
+        </p>
+        <p className={`w-full max-w-[1114px] text-black font-work-sans text-lg font-${application?.isAutoapproved ? 'bold' : 'normal'} leading-normal mb-10 md:text-base sm:text-sm sm:mb-[30px]`}>
+          {application?.isAutoapproved ? 'This applicant is auto-approved' : 'This applicant has been reviewed by an admin'}
         </p>
 
         <div className="w-full max-w-[1114px] border-[3px] border-[#EBEAED] rounded-[10px] p-10 md:p-[30px] sm:p-5">
@@ -262,6 +269,14 @@ const AdminDriverAppReview = () => {
           </div>
         </div>
       </main>
+      <div className="flex justify-center mb-5">
+        <button
+          onClick={handleCancel}
+          className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors font-work-sans text-base"
+        >
+          Cancel
+        </button>
+      </div>
       <Footer />
     </div>
   );
