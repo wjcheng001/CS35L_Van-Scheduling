@@ -79,6 +79,10 @@ export default function Header() {
           <Link to="/dashboard" className="nav-item">
             Dashboard
           </Link>
+          <div className="nav-spacer"></div>
+          <Link to="/app" className="nav-item">
+            Driver Application
+          </Link>
           <div className="nav-spacer" />
 
           {/* Intercept the click instead of a plain <Link> */}
