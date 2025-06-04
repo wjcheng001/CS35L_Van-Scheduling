@@ -14,7 +14,7 @@ const DriverApplication = () => {
   useEffect(() => {
     const checkSubmission = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/auth/findpriorApp", {
+        const res = await fetch("http://localhost:3000/api/driverapp/findpriorApp", {
           credentials: "include",
         });
         if (res.ok) {
@@ -67,7 +67,7 @@ const DriverApplication = () => {
     }
 
     // Validate checkboxes (assumes 4 checkboxes in order)
-    const checkboxes = [form[9], form[10], form[11], form[12]];
+    const checkboxes = [form[11], form[12], form[13], form[14]];
 
     const unchecked = checkboxes.findIndex((cb) => !cb.checked);
     if (unchecked !== -1) {
@@ -76,7 +76,7 @@ const DriverApplication = () => {
     }
 
     // Validate signature field (assumes it's form[13])
-    const signature = form[13].value.trim();
+    const signature = form[15].value.trim();
     if (!signature) {
       alert("Please enter your full name as a legally binding signature.");
       return;
@@ -165,40 +165,8 @@ const DriverApplication = () => {
             <li className="mb-2">
               Once done with 1-4, complete the form below to request permission to drive the CSC van for your project.
             </li>
-          </ol>        
-        /* <p className="w-full max-w-[1114px] text-black font-work-sans text-xl font-normal leading-normal mb-10 md:text-lg sm:text-base sm:mb-[30px]">
-          Get approved in 5 steps:
-          <br></br>
-          1. Create a UCLA WorkSafe profile at{" "}
-          <a
-            href="https://worksafe.ucla.edu/UCLA/Programs/Standard/Control/elmLearner.wml"
-            className="underline decoration-1 underline-offset-2 text-blue-600 hover:bg-blue-100 transition-colors"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            https://worksafe.ucla.edu/UCLA/Programs/Standard/Control/elmLearner.wml
-          </a>{". "} <br></br>
-          2. Submit a Driver Safety Training (DST) request at{" "}
-          <a
-            href="https://app.smartsheet.com/b/form?EQBCT=2218571313824a20927052602c1df717"
-            className="underline decoration-1 underline-offset-2 text-blue-600 hover:bg-blue-100 transition-colors"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            https://app.smartsheet.com/b/form?EQBCT=2218571313824a20927052602c1df717
-          </a>{". "}
-          <span className="indenT">It takes around ~2 business days for UCLA WorkSafe to assign you the DST module.</span>
-          <br></br>
-          3. Complete the Driver Safety Training (DST) to obtain a certificate if you have not in the last 2 years. <br />
-          <span className="indenT"> Else, just download your existing certificate and state the date of completion.</span>
-          <br></br>
-          4. Watch CSC Transportation's training video embedded in the{" "}
-          <Link to="/resources" className="font-bold text-[#5937E0] underline decoration-1 underline-offset-2 hover:bg-purple-100 transition-colors">          
-            Resources
-          </Link>{" "} page.
-          <br></br>
-          5. Once done with 1-4, complete the form below to request permission to drive the CSC van for your project.
-        </p> */}
+          </ol>
+        }
 
         <form
           onSubmit={handleSubmit}
