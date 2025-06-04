@@ -1,17 +1,70 @@
-// src/components/Header.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function Header() {
   const navigate = useNavigate();
-
   const [loading, setLoading] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Check login status on mount
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const response = await fetch("/api/auth/session", {
+          method: "GET",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        });
+        if (response.ok) {
+          setIsLoggedIn(true);
+        } else {
+          setIsLoggedIn(false);
+        }
+      } catch (err) {
+        console.error("Error checking auth status:", err);
+        setIsLoggedIn(false);
+      }
+    };
+    checkAuthStatus();
+  }, []);
+
+  const handleProtectedLinkClick = (e, path) => {
+    if (!isLoggedIn) {
+      e.preventDefault();
+      alert("Please log in to view content");
+      navigate("/");
+    }
+  };
+
+  const handleLogout = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (response.ok) {
+        setIsLoggedIn(false);
+        navigate("/");
+      } else {
+        alert("Error logging out. Please try again.");
+      }
+    } catch (err) {
+      console.error("Logout error:", err);
+      alert("An unexpected error occurred during logout.");
+    }
+  };
 
   const handleVanBookingClick = async (e) => {
-    console.log("clicked");
     e.preventDefault();
+    if (!isLoggedIn) {
+      alert("Please log in to view content");
+      return navigate("/");
+    }
 
     try {
+      setLoading(true);
       // 1) Check login + status
       const authRes = await fetch("/api/auth/status", {
         method: "GET",
@@ -19,12 +72,10 @@ export default function Header() {
         headers: { "Content-Type": "application/json" },
       });
       if (!authRes.ok) {
-        // If your endpoint returns 401 or similar, treat as “not logged in”
         return navigate("/login");
       }
 
       const authData = await authRes.json();
-      // assume authData looks like: { user: { email, status, … } } or { user: null }
       if (!authData.status) {
         console.log("not logged in");
         return navigate("/login");
@@ -55,6 +106,8 @@ export default function Header() {
     } catch (err) {
       console.error("Error during booking check:", err);
       alert("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -73,21 +126,40 @@ export default function Header() {
         </Link>
 
         <nav className="main-nav">
-          <Link to="/" className="nav-item">
-            Home
+          {isLoggedIn ? (
+            <a
+              href="/logout"
+              className="nav-item"
+              onClick={handleLogout}
+              style={{ opacity: loading ? 0.6 : 1, pointerEvents: loading ? "none" : "auto" }}
+            >
+              Logout
+            </a>
+          ) : (
+            <Link to="/" className="nav-item">
+              Home
+            </Link>
+          )}
+          <div className="nav-spacer" />
+
+          <Link
+            to="/dashboard"
+            className="nav-item"
+            onClick={(e) => handleProtectedLinkClick(e, "/dashboard")}
+          >
+            Dashboard
           </Link>
           <div className="nav-spacer" />
 
-          <Link to="/dashboard" className="nav-item">
-            Dashboard
-          </Link>
-          <div className="nav-spacer"></div>
-          <Link to="/app" className="nav-item">
+          <Link
+            to="/app"
+            className="nav-item"
+            onClick={(e) => handleProtectedLinkClick(e, "/app")}
+          >
             Driver Application
           </Link>
           <div className="nav-spacer" />
 
-          {/* Intercept the click instead of a plain <Link> */}
           <a
             href="/van-booking"
             className="nav-item"
@@ -98,12 +170,20 @@ export default function Header() {
           </a>
           <div className="nav-spacer" />
 
-          <Link to="/resources" className="nav-item">
+          <Link
+            to="/resources"
+            className="nav-item"
+            onClick={(e) => handleProtectedLinkClick(e, "/resources")}
+          >
             Resources
           </Link>
           <div className="nav-spacer" />
 
-          <Link to="/van-schedule" className="nav-item">
+          <Link
+            to="/van-schedule"
+            className="nav-item"
+            onClick={(e) => handleProtectedLinkClick(e, "/van-schedule")}
+          >
             Van Schedule
           </Link>
         </nav>
