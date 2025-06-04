@@ -50,10 +50,11 @@ const AdminPage = () => {
     checkAdminStatus();
   }, [navigate]);
 
-  const handleApprove = async (uid, isAutoapproved, tableType) => {
+  const handleApprove = async (uid, appReviewed) => {
     try {
-      if (tableType === "allUsers" && isAutoapproved) {
-        alert("Warning: You have not viewed this user's application.");
+      if (!appReviewed) {
+        const proceed = window.confirm("This user's application has not been reviewed. Do you want to proceed?");
+        if (!proceed) return;
       }
       const res = await fetch("http://localhost:3000/api/admin/approve-user", {
         method: "POST",
@@ -80,8 +81,12 @@ const AdminPage = () => {
     }
   };
 
-  const handleReject = async (uid) => {
+  const handleReject = async (uid, appReviewed) => {
     try {
+      if (!appReviewed) {
+        const proceed = window.confirm("This user's application has not been reviewed. Do you want to proceed?");
+        if (!proceed) return;
+      }
       const res = await fetch("http://localhost:3000/api/admin/reject-user", {
         method: "POST",
         credentials: "include",
@@ -230,13 +235,13 @@ const AdminPage = () => {
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                           <button
-                            onClick={() => handleApprove(user.uid, user.isAutoapproved, "pending")}
+                            onClick={() => handleApprove(user.uid, user.appReviewed)}
                             className="text-green-600 hover:text-green-900 mr-4"
                           >
                             Approve
                           </button>
                           <button
-                            onClick={() => handleReject(user.uid)}
+                            onClick={() => handleReject(user.uid, user.appReviewed)}
                             className="text-red-600 hover:text-red-900"
                           >
                             Reject
