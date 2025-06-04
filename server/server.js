@@ -371,7 +371,7 @@ app.post("/api/bookings", requireAuth, async (req, res) => {
 });
 
 // -----------------------------------------------------------
-// 12) Connect to MongoDB & start Express
+// 12) /api/admin/approve-user
 // -----------------------------------------------------------
 app.post("/api/admin/approve-user", requireAuth, requireAdmin, async (req, res) => {
   const { uid } = req.body;
