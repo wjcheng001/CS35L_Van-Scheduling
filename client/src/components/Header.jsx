@@ -36,7 +36,7 @@ export default function Header() {
       }
 
       // 3) Now check if they already have an active booking
-      const bookingsRes = await fetch("/api/bookings/data", {
+      const bookingsRes = await fetch("/api/bookings", {
         method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
