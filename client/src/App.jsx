@@ -13,6 +13,7 @@ import ReservationSuccess from "./pages/ReserveSuccess";
 import VanSchedule from "./pages/VanSchedule";
 import Resource from "./pages/Resource"
 import AdminPage from "./pages/AdminPage";
+import AdminDriverAppReview from './pages/AdminDriverAppReview';
 
 function Login() {
   const [user, setUser] = useState(null);
@@ -91,6 +92,7 @@ function App() {
         <Route path="/resources" element={<Resource />} />
         <Route path="/reservation-success" element={<ReservationSuccess />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/review/:uid" element={<AdminDriverAppReview />} />
       </Routes>
     </BrowserRouter>
   );

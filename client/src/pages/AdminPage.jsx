@@ -1,4 +1,3 @@
-// src/pages/AdminPage.jsx, based on Welcome.jsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
@@ -8,41 +7,34 @@ const AdminPage = () => {
   const [user, setUser] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchUid, setSearchUid] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
     async function checkAdminStatus() {
       try {
-        // 1) Fetch /api/admin/role to see if current user is an admin
         const sessionRes = await fetch("http://localhost:3000/api/admin/role", {
-          credentials: "include", // send session cookie
+          credentials: "include",
         });
 
         if (!sessionRes.ok) {
-          // 401 or 404 or other—treat as not logged in / no access
           navigate("/login");
           return;
         }
 
         const sessionData = await sessionRes.json();
-        // sessionData.user now exists
         setUser(sessionData.user);
 
-        // If the role is not "admin", redirect away
         if (sessionData.user.role !== "admin") {
           console.error("Permission denied—user is not an admin");
           navigate("/dashboard");
           return;
         }
 
-        // Fetch all users
         setLoading(true);
-
         const usersRes = await fetch("http://localhost:3000/api/admin/users", {
           credentials: "include",
         });
-
-        console.log(usersRes)
 
         if (usersRes.ok) {
           const usersData = await usersRes.json();
@@ -64,7 +56,7 @@ const AdminPage = () => {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid }), // send { uid: 12345 }
+        body: JSON.stringify({ uid }),
       });
 
       if (!res.ok) {
@@ -73,7 +65,6 @@ const AdminPage = () => {
         return;
       }
 
-      // Refresh the list
       const usersRes = await fetch("http://localhost:3000/api/admin/users", {
         credentials: "include",
       });
@@ -92,7 +83,7 @@ const AdminPage = () => {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid }), // send { uid: 12345 }
+        body: JSON.stringify({ uid }),
       });
 
       if (!res.ok) {
@@ -101,7 +92,6 @@ const AdminPage = () => {
         return;
       }
 
-      // Refresh the list
       const usersRes = await fetch("http://localhost:3000/api/admin/users", {
         credentials: "include",
       });
@@ -114,6 +104,13 @@ const AdminPage = () => {
     }
   };
 
+  const handleSearch = () => {
+    if (searchUid.trim()) {
+      navigate(`/review/${searchUid}`);
+    } else {
+      alert("Please enter a UID to search.");
+    }
+  };
 
   const handleBackToDashboard = () => {
     navigate('/dashboard');
@@ -139,6 +136,25 @@ const AdminPage = () => {
         <p className="text-black text-xl font-normal mb-10 md:text-lg sm:text-base sm:mb-[30px]">
           Manage users and applications. Review and approve driver applications.
         </p>
+
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Search Application by UID</h2>
+          <div className="flex gap-4">
+            <input
+              type="text"
+              value={searchUid}
+              onChange={(e) => setSearchUid(e.target.value)}
+              placeholder="Enter UID"
+              className="w-[300px] h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
+            />
+            <button
+              onClick={handleSearch}
+              className="px-4 py-2 bg-[#5937E0] text-white rounded-md hover:bg-[#4b2db3] transition-colors"
+            >
+              Search
+            </button>
+          </div>
+        </div>
 
         {loading ? (
           <div className="flex justify-center items-center py-12">
@@ -194,8 +210,7 @@ const AdminPage = () => {
 
             <h2 className="text-2xl font-bold text-gray-800 mt-8 mb-4">All Users</h2>
             <div className="overflow-x-auto">
-              {
-               <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="pl-10 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
@@ -228,8 +243,7 @@ const AdminPage = () => {
                     </tr>
                   ))}
                 </tbody>
-               </table>
-              }
+              </table>
             </div>
           </div>
         )}

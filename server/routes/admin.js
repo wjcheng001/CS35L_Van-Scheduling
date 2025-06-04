@@ -1,12 +1,13 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const User = require("../models/User");
 const requireAuth = require("../middlewares/requireAuth");
 const requireAdmin = require("../middlewares/requireAdmin");
+const { GridFSBucket, ObjectId } = require("mongodb");
 const router = express.Router();
 
 router.get("/users", requireAuth, requireAdmin, async (req, res) => {
   try {
-    // Fetch all users from the database (excluding sensitive fields if needed)
     const users = await User.find().lean();
     return res.json({ users });
   } catch (err) {
@@ -17,24 +18,17 @@ router.get("/users", requireAuth, requireAdmin, async (req, res) => {
 
 router.get("/role", requireAuth, async (req, res) => {
   try {
-    // Get the logged‐in user’s email from session
     const userEmail = req.session.user.email;
-
-    // Find exactly one User document (not an array)
     const user = await User.findOne({ email: userEmail }).lean();
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-
-    // Return the user object (including `role`)
     return res.json({ user });
   } catch (err) {
     console.error("Error in GET /api/admin/role:", err);
     return res.status(500).json({ error: "Server error" });
   }
 });
-
-
 
 router.post("/review-user", requireAuth, requireAdmin, async (req, res) => {
   const { email, action } = req.body;
@@ -61,6 +55,7 @@ router.post("/approve-user", requireAuth, requireAdmin, async (req, res) => {
     const user = await User.findOneAndUpdate(
       { uid },
       { $set: { status: "APPROVED" } },
+      { new: true }
     );
     if (!user) {
       return res.status(404).json({ error: "User not found" });
@@ -72,15 +67,49 @@ router.post("/approve-user", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-// to access the uploaded files
-router.get("/file/:fileId", requireAuth, async (req, res) => {
+router.post("/reject-user", requireAuth, requireAdmin, async (req, res) => {
+  const { uid } = req.body;
+  try {
+    const user = await User.findOneAndUpdate(
+      { uid },
+      { $set: { status: "REJECTED" } },
+      { new: true }
+    );
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    return res.json({ message: "User rejected successfully" });
+  } catch (error) {
+    console.error("User rejection failed:", error);
+    return res.status(500).json({ error: "Failed to reject user" });
+  }
+});
+
+router.get("/application/:uid", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const user = await User.findOne({ uid }).lean();
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    if (!user.driverApplication) {
+      return res.status(404).json({ error: "No driver application found" });
+    }
+    return res.json({ user });
+  } catch (err) {
+    console.error("Error in GET /application/:uid:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.get("/file/:fileId", requireAuth, requireAdmin, async (req, res) => {
   try {
     const bucket = new GridFSBucket(mongoose.connection.db, { bucketName: "driverFiles" });
     const fileId = new ObjectId(req.params.fileId);
     const downloadStream = bucket.openDownloadStream(fileId);
     downloadStream.on("file", (file) => {
       res.set("Content-Type", file.contentType);
-      res.set("Content-Disposition", `attachment; filename="${file.filename}"`);
+      res.set("Content-Disposition", `inline; filename="${file.filename}"`);
     });
     downloadStream.pipe(res);
     downloadStream.on("error", () => res.status(404).json({ error: "File not found" }));
