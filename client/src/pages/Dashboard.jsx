@@ -129,6 +129,8 @@ export default function Dashboard() {
   const [returns, setReturns] = useState([]);
   const [pendingUsers, setPendingUsers] = useState([]);
   const navigate = useNavigate();
+  const [adminMode, setAdminMode] = useState(false); // for admin mode switch
+
 
   useEffect(() => {
     async function fetchData() {
@@ -164,10 +166,12 @@ export default function Dashboard() {
         console.error("Error fetching dashboard data:", err);
         navigate("/login");
       }
+    
     }
     fetchData();
   }, [navigate]);
 
+<<<<<<< HEAD
   const handleApprove = async (uid) => {
     try {
       const res = await axios.post(
@@ -196,6 +200,16 @@ export default function Dashboard() {
     }
   };
 
+=======
+  useEffect(() => {   // new effect for admin mode
+    if (adminMode) {
+    navigate('/admin');
+    }
+  }, [adminMode, navigate]);
+
+
+  //  Show “Loading…” until `status` is non-null:
+>>>>>>> 1576380 (created AdminPage based on Welcome; added UseEffect for admin mode switch, added routes and imported pages on App.jsx)
   if (status === null) {
     return (
       <div className="flex flex-col min-h-screen bg-gray-50">
@@ -274,3 +288,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
