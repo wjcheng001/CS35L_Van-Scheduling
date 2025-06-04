@@ -82,7 +82,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/reserve" element={<VanReservation />} />
-        <Route path="/return" element={<VanReturn />} />
+        <Route path="/van-return" element={<VanReturn />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/app" element={<DriverApplication />} />
         <Route path="/login" element={<Login />} />

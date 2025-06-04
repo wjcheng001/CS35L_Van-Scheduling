@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -23,6 +24,25 @@ const VanReturn = () => {
     acceptResponsibility: false
   });
 
+    // ensure the user is logged in. If not, redirect back to “/”
+    useEffect(() => {
+      async function checkSession() {
+        try {
+          const res = await fetch("/api/auth/session", {
+            credentials: "include",
+          });
+          if (!res.ok) {
+            // Not logged in → send user to Home
+            navigate("/");
+          }
+        } catch (err) {
+          console.error("Session check error:", err);
+          navigate("/");
+        }
+      }
+      checkSession();
+    }, [navigate]);
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -41,30 +61,87 @@ const VanReturn = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  // Handle form submission
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Return form submitted:", formData);
+    try {
+      const res = await fetch("http://localhost:3000/api/van-returns", {
+        method: "POST",
+        credentials: "include", // <— send the session cookie
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId: formData.bookingId,
+          projectName: formData.projectName,
+          vanSerialNumber: formData.vanSerialNumber,
+          returnDate: formData.returnDate,
+          returnTime: formData.returnTime,
+          parkingLocation: formData.parkingLocation,
+          notifiedKeyProblem: formData.notifiedKeyProblem,
+          hadAccident: formData.hadAccident,
+          cleanedVan: formData.cleanedVan,
+          refueledVan: formData.refueledVan,
+          experiencedProblem: formData.experiencedProblem,
+          damageDescription: formData.damageDescription,
+          acceptResponsibility: formData.acceptResponsibility,
+        }),
+      });
 
-    navigate("/return-success");
+      if (res.status === 401) {
+        // not authenticated; redirect to login
+        navigate("/login");
+        return;
+      }
+
+      if (res.status === 400) {
+        const errData = await res.json();
+        alert(`Van return submission failed: ${errData.error}`);
+        // stay on this page so user can correct
+        return;
+      }
+
+      if (!res.ok) {
+        const err = await res.json();
+        console.error("Van return submission failed:", err);
+        return;
+      }
+
+      const { vanReturn } = await res.json();
+      console.log("Successfully submitted van return:", vanReturn);
+
+      // Show success message
+      setShowSuccessMessage(true);
+    } catch (err) {
+      console.error("Van return request failed:", err);
+    }
   };
+
+  // Success message component
+  if (showSuccessMessage) {
+    return (
+      <div className="bg-white overflow-hidden">
+        <div className="flex w-full flex-col items-stretch">
+          <Header />
+          
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="bg-[#5937E0] rounded-full p-6 mb-6">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5 12L10 17L20 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <h1 className="text-[#5937E0] text-4xl font-bold mb-8">Van return recorded, thank you</h1>
+            <p className="text-xl text-black">Thank you for taking care of our vans</p>
+          </div>
+
+          <Footer />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white overflow-hidden">
       <div className="flex w-full flex-col items-stretch">
-        {/* Header */}
-        <header className="flex items-center justify-between px-8 py-4 border-b border-gray-200">
-          <div className="flex items-center">
-            <img src="/car-icon.svg" alt="CSC Transportation" className="h-8 w-8 mr-2" />
-            <span className="font-bold">CSC Transportation</span>
-          </div>
-          <nav className="flex space-x-6">
-            <a href="#" className="hover:text-[#5937E0]">Home</a>
-            <a href="#" className="hover:text-[#5937E0]">Resources</a>
-            <a href="#" className="hover:text-[#5937E0]">Dashboard</a>
-            <a href="#" className="hover:text-[#5937E0]">Van Schedule</a>
-            <a href="#" className="hover:text-[#5937E0]">Contact Us</a>
-          </nav>
-        </header>
+        <Header />
 
         <h1 className="text-[#5937E0] text-[50px] font-work-sans font-bold self-start mt-[51px] ml-[156px] md:text-[40px] md:mt-10">
           Return a Van
@@ -82,6 +159,11 @@ const VanReturn = () => {
           onSubmit={handleSubmit}
           className="rounded-[10px] border-[3px] border-[#EBEAED] self-center flex mt-[40px] w-4/5 max-w-[1114px] px-10 py-[40px] flex-col items-stretch md:max-w-full md:px-5 md:mt-10"
         >
+          {/* Show error if any */}
+          {error && (
+            <div className="text-red-600 text-sm text-center mb-4">{error}</div>
+          )}
+
           <div className="flex items-stretch gap-5 font-work-sans text-sm text-black font-bold uppercase tracking-[2px] leading-8 flex-wrap justify-between">
             <div className="flex flex-col items-stretch flex-1">
               <label className="self-start">
@@ -331,112 +413,14 @@ const VanReturn = () => {
 
           <button
             type="submit"
+            onClick={e => handleSubmit(e)}
             className="rounded-[47px] bg-[#5937E0] border-2 border-[#5937E0] self-end mt-[40px] w-[200px] px-[70px] py-[26px] font-dm-sans text-[18px] text-white font-bold uppercase tracking-[2px] leading-[1.3] hover:bg-[#4826d9] transition-colors md:mr-1 md:px-5 md:mt-10"
           >
             Submit
           </button>
         </form>
 
-        {/* Footer */}
-        <footer className="mt-16 pb-8">
-          <div className="flex justify-between items-center max-w-[1114px] mx-auto px-8">
-            <div className="flex items-center">
-              <img src="/van-icon.svg" alt="CSC Transportation" className="h-12 w-12 mr-2" />
-              <span className="font-bold">CSC Transportation</span>
-            </div>
-            <div className="flex items-center">
-              <div className="flex items-center mr-8">
-                <div className="bg-[#FFC107] rounded-full p-2 mr-2">
-                  <img src="/email-icon.svg" alt="Email" className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm">Email</div>
-                  <div className="text-sm font-semibold">transportation@uclacsc.org</div>
-                </div>
-              </div>
-              <div className="flex items-center">
-                <div className="bg-[#FFC107] rounded-full p-2 mr-2">
-                  <img src="/phone-icon.svg" alt="Phone" className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm">Director's Phone</div>
-                  <div className="text-sm font-semibold">(510) 828 7036</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="text-center text-sm text-gray-500 mt-4">
-            © Copyright Car Rental 2024. Design by Figma.guru
-          </div>
-        </footer>
-      </div>
-    </div>
-  );
-};
-
-// Success page component
-export const ReturnSuccess = () => {
-  return (
-    <div className="bg-[#1E1E1E] min-h-screen">
-      <div className="flex w-full flex-col items-stretch">
-        {/* Header */}
-        <header className="flex items-center justify-between px-8 py-4 border-b border-gray-700">
-          <div className="flex items-center">
-            <img src="/car-icon.svg" alt="CSC Transportation" className="h-8 w-8 mr-2" />
-            <span className="font-bold text-white">CSC Transportation</span>
-          </div>
-          <nav className="flex space-x-6 text-white">
-            <a href="#" className="hover:text-[#5937E0]">Home</a>
-            <a href="#" className="hover:text-[#5937E0]">Resources</a>
-            <a href="#" className="hover:text-[#5937E0]">Dashboard</a>
-            <a href="#" className="hover:text-[#5937E0]">Van Schedule</a>
-            <a href="#" className="hover:text-[#5937E0]">Contact Us</a>
-          </nav>
-        </header>
-
-        {/* Success content */}
-        <div className="flex flex-col items-center justify-center flex-grow py-20">
-          <div className="bg-[#5937E0] rounded-full p-6 mb-6">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5 12L10 17L20 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <h1 className="text-[#5937E0] text-4xl font-bold mb-8">SUBMITTED!</h1>
-          <p className="text-xl text-white">Thank you for taking care of our vans</p>
-        </div>
-
-        {/* Footer */}
-        <footer className="mt-auto pb-8">
-          <div className="flex justify-between items-center max-w-[1114px] mx-auto px-8">
-            <div className="flex items-center">
-              <img src="/van-icon.svg" alt="CSC Transportation" className="h-12 w-12 mr-2" />
-              <span className="font-bold text-white">CSC Transportation</span>
-            </div>
-            <div className="flex items-center text-white">
-              <div className="flex items-center mr-8">
-                <div className="bg-[#FFC107] rounded-full p-2 mr-2">
-                  <img src="/email-icon.svg" alt="Email" className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm">Email</div>
-                  <div className="text-sm font-semibold">transportation@uclacsc.org</div>
-                </div>
-              </div>
-              <div className="flex items-center">
-                <div className="bg-[#FFC107] rounded-full p-2 mr-2">
-                  <img src="/phone-icon.svg" alt="Phone" className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm">Director's Phone</div>
-                  <div className="text-sm font-semibold">(510) 828 7036</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="text-center text-sm text-gray-400 mt-4">
-            © Copyright Car Rental 2024. Design by Figma.guru
-          </div>
-        </footer>
+        <Footer />
       </div>
     </div>
   );
