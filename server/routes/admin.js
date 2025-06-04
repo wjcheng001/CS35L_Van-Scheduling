@@ -72,4 +72,22 @@ router.post("/approve-user", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+// to access the uploaded files
+router.get("/file/:fileId", requireAuth, async (req, res) => {
+  try {
+    const bucket = new GridFSBucket(mongoose.connection.db, { bucketName: "driverFiles" });
+    const fileId = new ObjectId(req.params.fileId);
+    const downloadStream = bucket.openDownloadStream(fileId);
+    downloadStream.on("file", (file) => {
+      res.set("Content-Type", file.contentType);
+      res.set("Content-Disposition", `attachment; filename="${file.filename}"`);
+    });
+    downloadStream.pipe(res);
+    downloadStream.on("error", () => res.status(404).json({ error: "File not found" }));
+  } catch (err) {
+    console.error("Error retrieving file:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 module.exports = router;

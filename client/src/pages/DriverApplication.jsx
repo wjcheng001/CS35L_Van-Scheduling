@@ -11,8 +11,8 @@ const DriverApplication = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [dmvFile, setDmvFile] = useState(null);
   const [certificateFile, setCertificateFile] = useState(null);
-  const dmvInputRef = useRef(null); // Ref for DMV file input
-  const certificateInputRef = useRef(null); // Ref for certificate file input
+  const dmvInputRef = useRef(null);
+  const certificateInputRef = useRef(null);
 
   // Guard against double submission and check admin status
   useEffect(() => {
@@ -54,7 +54,7 @@ const DriverApplication = () => {
   // Handle file deletion
   const handleFileDelete = (setFile, inputRef) => {
     setFile(null);
-    inputRef.current.value = null; // Reset the file input
+    inputRef.current.value = null;
   };
 
   // When user presses submit
@@ -71,21 +71,22 @@ const DriverApplication = () => {
 
     const form = e.target;
 
+    // Collect form data
+    const formData = new FormData(form);
     const payload = {
-      fullName: form[0].value.trim(),
-      licenseNumber: form[1].value.trim(),
-      licenseState: form[2].value.trim(),
-      phoneNumber: form[3].value.trim(),
-      project: form[4].value.trim(),
-      licenseExpiry: form[5].value,
-      dob: form[6].value,
-      drivingPoints: form[7].value,
-      dstDate: form[8].value,
+      fullName: formData.get("fullName")?.trim(),
+      licenseNumber: formData.get("licenseNumber")?.trim(),
+      licenseState: formData.get("licenseState")?.trim(),
+      phoneNumber: formData.get("phoneNumber")?.trim(),
+      project: formData.get("project")?.trim(),
+      licenseExpiry: formData.get("licenseExpiry"),
+      dob: formData.get("dob"),
+      drivingPoints: formData.get("drivingPoints"),
+      dstDate: formData.get("dstDate"),
       dmvFile,
       certificateFile,
     };
 
-    // ## Validation of Non-null fields START ###
     // Validate main fields
     for (const [key, value] of Object.entries(payload)) {
       if (!value && key !== "dmvFile" && key !== "certificateFile") {
@@ -106,32 +107,38 @@ const DriverApplication = () => {
       }
     }
 
-    // Validate checkboxes (assumes 4 checkboxes in order)
-    const checkboxes = [form[11], form[12], form[13], form[14]];
-    const unchecked = checkboxes.findIndex((cb) => !cb.checked);
-    if (unchecked !== -1) {
-      alert("Please check all acknowledgments before submitting.");
-      return;
+    // Validate checkboxes
+    const checkboxNames = [
+      "acknowledgeKeys",
+      "acknowledgeTolls",
+      "acknowledgePhotos",
+      "acknowledgeFuel",
+    ];
+    for (const name of checkboxNames) {
+      if (!formData.get(name)) {
+        alert("Please check all acknowledgments before submitting.");
+        return;
+      }
     }
 
-    // Validate signature field (assumes it's form[15])
-    const signature = form[15].value.trim();
+    // Validate signature
+    const signature = formData.get("signature")?.trim();
     if (!signature) {
       alert("Please enter your full name as a legally binding signature.");
       return;
     }
-    // ## Validation of Non-null fields END ###
 
     try {
-      const formData = new FormData();
+      // Append files to FormData for submission
+      const submitData = new FormData();
       for (const [key, value] of Object.entries(payload)) {
-        formData.append(key, value);
+        submitData.append(key, value);
       }
 
       const res = await fetch("http://localhost:3000/api/driverapp/process", {
         method: "POST",
         credentials: "include",
-        body: formData,
+        body: submitData,
       });
 
       const data = await res.json();
@@ -148,13 +155,10 @@ const DriverApplication = () => {
     }
   };
 
-  /* ################################## DESIGN ELEMENTS ################################## */
-
   return (
     <div className="w-full min-h-screen bg-white flex flex-col">
       <Header />
 
-      {/* Main Content */}
       <main className="flex flex-col items-center px-[72px] py-10 w-full md:px-10 sm:px-5 sm:py-5">
         <h1 className="w-full max-w-[1097px] text-[#5937E0] font-work-sans text-[50px] font-bold leading-normal mb-5 md:text-[40px] sm:text-[28px] sm:mb-4">
           Approved Driver Application
@@ -162,52 +166,50 @@ const DriverApplication = () => {
         <p className="w-full max-w-[1114px] text-black font-work-sans text-xl font-normal leading-normal mb-2 md:text-lg sm:text-base sm:mb-[5px]">
           Get approved in 5 steps:
         </p>
-        {
-          <ol className="w-full max-w-[1114px] text-black font-work-sans text-xl font-normal leading-normal mb-10 md:text-lg sm:text-base sm:mb-[30px] list-decimal list-inside">
-            <li className="mb-2">
-              Create a UCLA WorkSafe profile at{" "}
-              <a
-                href="https://worksafe.ucla.edu/UCLA/Programs/Standard/Control/elmLearner.wml"
-                className="underline decoration-1 underline-offset-2 text-blue-600 hover:bg-blue-100 transition-colors"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                https://worksafe.ucla.edu/UCLA/Programs/Standard/Control/elmLearner.wml
-              </a>
-              {". "}
-            </li>
-            <li className="mb-2">
-              Submit a Driver Safety Training (DST) request at{" "}
-              <a
-                href="https://app.smartsheet.com/b/form?EQBCT=2218571313824a20927052602c1df717"
-                className="underline decoration-1 underline-offset-2 text-blue-600 hover:bg-blue-100 transition-colors"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                https://app.smartsheet.com/b/form?EQBCT=2218571313824a20927052602c1df717
-              </a>
-              {". "}
-              <span className="indenT">It takes around ~2 business days for UCLA WorkSafe to assign you the DST module.</span>
-            </li>
-            <li className="mb-2">
-              Complete the Driver Safety Training (DST) to obtain a certificate if you have not in the last 2 years.{" "}
-              <span className="indenT">Else, just download your existing certificate and state the date of completion.</span>
-            </li>
-            <li className="mb-2">
-              Watch CSC Transportation's training video embedded in the{" "}
-              <Link
-                to="/resources"
-                className="font-bold text-[#5937E0] underline decoration-1 underline-offset-2 hover:bg-purple-100 transition-colors"
-              >
-                Resources
-              </Link>{" "}
-              page.
-            </li>
-            <li className="mb-2">
-              Once done with 1-4, complete the form below to request permission to drive the CSC van for your project.
-            </li>
-          </ol>
-        }
+        <ol className="w-full max-w-[1114px] text-black font-work-sans text-xl font-normal leading-normal mb-10 md:text-lg sm:text-base sm:mb-[30px] list-decimal list-inside">
+          <li className="mb-2">
+            Create a UCLA WorkSafe profile at{" "}
+            <a
+              href="https://worksafe.ucla.edu/UCLA/Programs/Standard/Control/elmLearner.wml"
+              className="underline decoration-1 underline-offset-2 text-blue-600 hover:bg-blue-100 transition-colors"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              https://worksafe.ucla.edu/UCLA/Programs/Standard/Control/elmLearner.wml
+            </a>
+            {". "}
+          </li>
+          <li className="mb-2">
+            Submit a Driver Safety Training (DST) request at{" "}
+            <a
+              href="https://app.smartsheet.com/b/form?EQBCT=2218571313824a20927052602c1df717"
+              className="underline decoration-1 underline-offset-2 text-blue-600 hover:bg-blue-100 transition-colors"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              https://app.smartsheet.com/b/form?EQBCT=2218571313824a20927052602c1df717
+            </a>
+            {". "}
+            <span className="indenT">It takes around ~2 business days for UCLA WorkSafe to assign you the DST module.</span>
+          </li>
+          <li className="mb-2">
+            Complete the Driver Safety Training (DST) to obtain a certificate if you have not in the last 2 years.{" "}
+            <span className="indenT">Else, just download your existing certificate and state the date of completion.</span>
+          </li>
+          <li className="mb-2">
+            Watch CSC Transportation's training video embedded in the{" "}
+            <Link
+              to="/resources"
+              className="font-bold text-[#5937E0] underline decoration-1 underline-offset-2 hover:bg-purple-100 transition-colors"
+            >
+              Resources
+            </Link>{" "}
+            page.
+          </li>
+          <li className="mb-2">
+            Once done with 1-4, complete the form below to request permission to drive the CSC van for your project.
+          </li>
+        </ol>
 
         <form
           onSubmit={handleSubmit}
@@ -222,6 +224,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="text"
+                  name="fullName"
                   className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
@@ -232,6 +235,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="text"
+                  name="licenseNumber"
                   className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
@@ -242,6 +246,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="text"
+                  name="licenseState"
                   className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
@@ -255,6 +260,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="tel"
+                  name="phoneNumber"
                   className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
@@ -265,6 +271,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="text"
+                  name="project"
                   className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
@@ -275,6 +282,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="date"
+                  name="licenseExpiry"
                   className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
@@ -288,6 +296,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="date"
+                  name="dob"
                   className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
@@ -298,6 +307,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="number"
+                  name="drivingPoints"
                   className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
@@ -308,6 +318,7 @@ const DriverApplication = () => {
                 </label>
                 <input
                   type="date"
+                  name="dstDate"
                   className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
@@ -323,6 +334,7 @@ const DriverApplication = () => {
                   <input
                     type="file"
                     accept="image/*,.pdf"
+                    name="dmvFile"
                     className="w-full h-[179px] px-4 py-2 rounded-[39px] border-2 border-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#5937E0] file:text-white hover:file:bg-[#4b2db3] opacity-0 absolute"
                     onChange={(e) => handleFileChange(e, setDmvFile, dmvInputRef)}
                     ref={dmvInputRef}
@@ -355,7 +367,8 @@ const DriverApplication = () => {
                   <input
                     type="file"
                     accept="image/*,.pdf"
-                    className="w-full h-[179px] px-4 py-2 rounded-[29px] border-2 border-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#5937E0] file:text-white hover:file:bg-[#4b2db3] opacity-0 absolute"
+                    name="certificateFile"
+                    className="w-full h-[179px] px-4 py-2 rounded-[39px] border-2 border-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#5937E0] file:text-white hover:file:bg-[#4b2db3] opacity-0 absolute"
                     onChange={(e) => handleFileChange(e, setCertificateFile, certificateInputRef)}
                     ref={certificateInputRef}
                   />
@@ -382,12 +395,13 @@ const DriverApplication = () => {
 
             <p className="text-black font-roboto text-[13px] font-normal leading-5">
               *To access a copy of your DMV record, please visit
-              {" "} <a
+              {" "}
+              <a
                 href="https://www.dmv.ca.gov/portal/customer-service/request-vehicle-or-driver-records/online-driver-record-request/"
                 className="underline decoration-1 underline-offset-2 text-blue-600 hover:bg-blue-100 transition-colors"
               >
                 https://www.dmv.ca.gov/portal/customer-service/request-vehicle-or-driver-records/online-driver-record-request/
-              </a> {" "}
+              </a>{" "}
               or your respective state's DMV website. Log in to your account and
               request a driver's record. There may be a DMV fee of $2-$4
               depending on your individual record. CSC will NOT reimburse this
@@ -400,10 +414,10 @@ const DriverApplication = () => {
             </h2>
 
             <div className="flex flex-col gap-3 mb-[30px] sm:mb-5">
-              {/* Checkbox items */}
               <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
+                  name="acknowledgeKeys"
                   className="w-6 h-[21px] border border-black flex-shrink-0 mt-0.5"
                 />
                 <label className="text-black font-roboto text-sm font-normal leading-[15px]">
@@ -416,6 +430,7 @@ const DriverApplication = () => {
               <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
+                  name="acknowledgeTolls"
                   className="w-6 h-[21px] border border-black flex-shrink-0 mt-0.5"
                 />
                 <label className="text-black font-roboto text-sm font-normal leading-4">
@@ -428,6 +443,7 @@ const DriverApplication = () => {
               <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
+                  name="acknowledgePhotos"
                   className="w-6 h-[21px] border border-black flex-shrink-0 mt-0.5"
                 />
                 <label className="text-black font-roboto text-sm font-normal leading-[15px]">
@@ -442,11 +458,12 @@ const DriverApplication = () => {
               <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
+                  name="acknowledgeFuel"
                   className="w-6 h-[21px] border border-black flex-shrink-0 mt-0.5"
                 />
                 <label className="text-black font-roboto text-sm font-normal leading-[15px]">
                   I declare that I will return the vans and keys on time with
-                  {' >'}75% fuel level. I understand that failure to do so results
+                  {">"}75% fuel level. I understand that failure to do so results
                   in a deduction of my project's credit score.
                 </label>
               </div>
@@ -459,6 +476,7 @@ const DriverApplication = () => {
               </label>
               <input
                 type="text"
+                name="signature"
                 className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
               />
             </div>
