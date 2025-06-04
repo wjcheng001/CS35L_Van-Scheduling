@@ -5,7 +5,7 @@ const requireAdmin = require("../middlewares/requireAdmin");
 const router = express.Router();
 
 
-router.post("/api/admin/review-user", requireAuth, requireAdmin, async (req, res) => {
+router.post("/review-user", requireAuth, requireAdmin, async (req, res) => {
   const { email, action } = req.body;
   if (!["approve", "reject"].includes(action)) {
     return res.status(400).json({ error: "Invalid action" });
@@ -24,7 +24,7 @@ router.post("/api/admin/review-user", requireAuth, requireAdmin, async (req, res
   }
 });
 
-router.post("/api/admin/approve-user", requireAuth, requireAdmin, async (req, res) => {
+router.post("/approve-user", requireAuth, requireAdmin, async (req, res) => {
   const { uid } = req.body;
   try {
     const User = mongoose.model('User');

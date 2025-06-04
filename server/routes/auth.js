@@ -98,7 +98,7 @@ router.post("/register", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/api/auth/logout", requireAuth, (req, res) => {
+router.post("/logout", requireAuth, (req, res) => {
   req.session.destroy(() => {
     res.clearCookie("connect.sid");
     res.json({ message: "Logged out" });
