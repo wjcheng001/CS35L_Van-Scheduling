@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import VanReturn from "./pages/VanReturn";
 import Home from "./pages/Home";
 import Welcome from "./pages/Welcome";
+import AdminPage from './AdminPage'; 
 import DriverApplication from "./pages/DriverApplication";
 import { useNavigate } from "react-router-dom";
 import ReservationSuccess from "./pages/ReserveSuccess";
@@ -87,6 +88,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/van-schedule" element={<VanSchedule />} />
         <Route path="/welcome" element={<Welcome />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="/resources" element={<Resource />} />
         <Route path="/reservation-success" element={<ReservationSuccess />} />
       </Routes>
