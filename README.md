@@ -110,6 +110,8 @@ Copy `server/.env.example` to `server/.env` and set:
 MONGODB_URI="mongodb://localhost:27017/35ldb"
 ```
 
+---
+
 ## Installing Dependencies
 
 ### Backend
@@ -197,78 +199,63 @@ wanjun01@g.ucla.edu
 celinee@g.ucla.edu
 ```
 
-To allow **any tester** to become an admin, add their email (e.g. `grader123@g.ucla.edu`) to **both** the `ADMIN_EMAILS` arrays in two files:
+If a grader wants to test admin-only routes using their own Google account, follow one of these methods:
 
-### 1. In `server/routes/auth.js`
+### Option A: Add Your Email Before Launching (Recommended)
 
-Find and update:
+1. **Edit `server/routes/auth.js`:**
 
-```js
-// server/routes/auth.js
-const ADMIN_EMAILS = [
-  "transportation@uclacsc.org",
-  "wanjun01@g.ucla.edu",
-  "celinee@g.ucla.edu"
-];
-```
-
-Modify to include the tester’s email:
-
-```diff
-const ADMIN_EMAILS = [
-  "transportation@uclacsc.org",
-  "wanjun01@g.ucla.edu",
-  "celinee@g.ucla.edu",
-+ "grader123@g.ucla.edu"
-];
-```
-
-### 2. In `server/middlewares/requireAdmin.js`
-
-Find and update:
-
-```js
-// server/middlewares/requireAdmin.js
-const ADMIN_EMAILS = [
-  "transportation@uclacsc.org",
-  "wanjun01@g.ucla.edu",
-  "celinee@g.ucla.edu"
-];
-```
-
-Modify to include the tester’s email:
-
-```diff
-const ADMIN_EMAILS = [
-  "transportation@uclacsc.org",
-  "wanjun01@g.ucla.edu",
-  "celinee@g.ucla.edu",
-+ "grader123@g.ucla.edu"
-];
-```
-
-### 3. Restart the server
-
-```bash
-cd server
-node server.js
-```
-
-### 4. Log in as the new admin
-
-1. In your browser, go to `http://localhost:5173`.
-2. Click **Sign in with Google** and choose `grader123@g.ucla.edu`.
-3. After login, your session will have `role: "admin"`.
-4. On the **Dashboard**, you’ll now see **“Admin Tools”**. You can also visit any admin‐only endpoint directly:
-
+   ```diff
+   // server/routes/auth.js
+   const ADMIN_EMAILS = [
+     "transportation@uclacsc.org",
+     "wanjun01@g.ucla.edu",
+     "celinee@g.ucla.edu",
+   + "your_test_email@g.ucla.edu"
+   ];
    ```
-   GET  http://localhost:3000/api/admin/users
-   GET  http://localhost:3000/api/admin/pending-users
-   POST http://localhost:3000/api/admin/approve-user   { "uid": 123456789 }
-   POST http://localhost:3000/api/admin/reject-user    { "uid": 123456789 }
-   ```
+2. **Edit `server/middlewares/requireAdmin.js`:**
 
-   Since your email is in `ADMIN_EMAILS`, these calls will succeed (instead of returning a 403).
+   ```diff
+   // server/middlewares/requireAdmin.js
+   const ADMIN_EMAILS = [
+     "transportation@uclacsc.org",
+     "wanjun01@g.ucla.edu",
+     "celinee@g.ucla.edu",
+   + "your_test_email@g.ucla.edu"
+   ];
+   ```
+3. **Restart the server** (so the changes take effect):
+
+   ```bash
+   cd server
+   node server.js
+   ```
+4. **Sign in** at `http://localhost:5173` with `your_test_email@g.ucla.edu`.
+
+   * The first time you log in, the backend recognizes that your email is in `ADMIN_EMAILS` and creates your user document with `role: "admin"`.
+   * On the Dashboard, you’ll see **Admin Tools** appear immediately.
+
+### Option B: If You’ve Already Signed In as a Regular User
+
+If you logged in before adding your email to `ADMIN_EMAILS`, your existing user document will have `role: "user"`. Even after updating the code, the server still sees you as a non-admin. To fix that:
+
+1. **Delete your existing user record from MongoDB**:
+
+   ```bash
+   mongosh 35ldb
+   db.users.deleteOne({ email: "your_test_email@g.ucla.edu" })
+   exit
+   ```
+2. **Restart the server** (so it picks up the updated `ADMIN_EMAILS`):
+
+   ```bash
+   cd server
+   node server.js
+   ```
+3. **Sign in again** at `http://localhost:5173` with `your_test_email@g.ucla.edu`.
+
+   * Now the backend will create a fresh user document with `role: "admin"`.
 
 ---
 
@@ -283,13 +270,14 @@ node server.js
 
 ## Common Troubleshooting
 
-1. **“Unexpected token '<'…” on multipart submission**
+1. **“Unexpected token ‘<’” on multipart submission**
 
    * Ensure `upload.fields(...)` (Multer) is used in `driverapp.js` so Express does not try to parse `multipart/form-data` as JSON.
 
 2. **403 on admin routes**
 
    * Confirm your email is in `ADMIN_EMAILS` in **both** `auth.js` and `requireAdmin.js`, and restart server.
+   * If you already signed in as a non-admin, delete your user document from MongoDB (see “Option B” above).
 
 3. **Session/CORS issues**
 
@@ -322,14 +310,14 @@ node server.js
 
 ## Summary
 
-1. **Clone**:
+1. **Clone**
 
    ```bash
    git clone <repo-url>
    cd CS35L_Van-Scheduling
    ```
 
-2. **Configure server**:
+2. **Configure server**
 
    ```bash
    cd server
@@ -338,7 +326,7 @@ node server.js
    npm install
    ```
 
-3. **Configure client & run**:
+3. **Configure client & run**
 
    ```bash
    cd client
@@ -346,7 +334,7 @@ node server.js
    npm run dev
    ```
 
-4. **Run server**:
+4. **Run server**
 
    ```bash
    cd server
