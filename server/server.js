@@ -11,6 +11,11 @@ const Return = require("./models/Return"); // ← Import the Return model
 const secrets = require("./secrets.js");
 const Van = require("./models/Van");
 
+// Middlewares
+const requireAuth = require("./middlewares/requireAuth.js");
+const requireAdmin = require("./middlewares/requireAdmin.js");
+
+
 const VAN_IDS = [
   4116,
   4367,
@@ -51,29 +56,6 @@ app.use(
     },
   })
 );
-
-/* #############################
-          AUTH APIs
-############################# */
-
-// 1) requireAuth middleware
-const requireAuth = (req, res, next) => {
-  if (!req.session.user) {
-    return res.status(401).json({ error: "Not logged in" });
-  }
-  next();
-};
-
-// 2) requireAdmin middleware
-const requireAdmin = (req, res, next) => {
-  if (!req.session.user) {
-    return res.status(401).json({ error: "Not logged in" });
-  }
-  if (!ADMIN_EMAILS.includes(req.session.user.email)) {
-    return res.status(403).json({ error: "Admin access required" });
-  }
-  next();
-};
 
 // -----------------------------------------------------------
 // 3) Google OAuth Login → POST /api/auth/google
