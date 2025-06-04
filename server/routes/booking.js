@@ -1,7 +1,7 @@
 const express = require("express");
 const requireAuth = require("../middlewares/requireAuth");
 const router = express.Router();
-const Booking = require("../models/Booking")
+const Booking = require("../models/Booking");
 const User = require("../models/User");
 const Van = require("../models/Van");
 
@@ -21,12 +21,10 @@ const VAN_IDS = [
 router.get("/data", requireAuth, async (req, res) => {
   try {
     const userEmail = req.session.user.email;
-    console.log(userEmail);
-    // 1) Fetch all bookings for this user, newest first
+    // Fetch all bookings for this user, newest first
     const bookings = await Booking.find({ userEmail })
       .sort({ createdAt: -1 })
       .lean();
-    // 3) Return the array
     return res.json({ bookings });
   } catch (err) {
     console.error("Error in GET /api/bookings:", err);
@@ -73,7 +71,6 @@ router.post("/data", requireAuth, async (req, res) => {
         .json({ error: "Missing required booking fields." });
     }
 
-
     // 2) Check that the user’s account is APPROVED
     const userEmail = req.session.user.email;
     const user = await User.findOne({ email: userEmail });
@@ -84,9 +81,6 @@ router.post("/data", requireAuth, async (req, res) => {
     }
 
     // 3) Build JS Date objects for the full start/end datetime
-    //    We assume pickupDate is "YYYY-MM-DD" and pickupTime is "HH:mm" (24-hour).
-    //    We append ":00" for seconds to make a valid ISO string.
-    //
     const start = new Date(`${pickupDate}T${pickupTime}:00`);
     const end = new Date(`${returnDate}T${returnTime}:00`);
 
@@ -97,24 +91,13 @@ router.post("/data", requireAuth, async (req, res) => {
     }
 
     // 4) Find a van whose existing busy intervals do NOT overlap [start, end)
-    //
-    //    Overlap logic: Two intervals [a, b) and [c, d) overlap
-    //    if and only if (a < d) AND (c < b).
-    //
-    //    We want a van such that for every existing slot { s.start, s.end },
-    //    NOT( s.start < end  AND  start < s.end ).
-    //
-    //    Equivalently, we can say: no element in busy satisfies (start < busy.end AND busy.start < end).
-    //
     const freeVan = await Van.findOne({
       vanId: { $in: VAN_IDS },
       $nor: [
         {
           busy: {
             $elemMatch: {
-              // busy.start < end
               start: { $lt: end },
-              // busy.end > start  ⟸  ( start < busy.end )
               end: { $gt: start },
             }
           }
@@ -132,16 +115,17 @@ router.post("/data", requireAuth, async (req, res) => {
     const newBooking = await Booking.create({
       userEmail,
       projectName,
-      pickupDate: start,    // store as a Date
-      pickupTime,           // store original time string if you need to display
+      pickupDate: start,
+      pickupTime,
       numberOfVans,
-      returnDate: end,      // store as a Date
-      returnTime,           // store original time string
+      returnDate: end,
+      returnTime,
       siteName,
       siteAddress,
       within75Miles,
       tripPurpose,
-      vanId: freeVan.vanId, // server‐assigned
+      vanId: freeVan.vanId,
+      status: "CONFIRMED", // Auto-confirm since a free van was found
     });
 
     // 6) Mark that van’s busy interval by pushing { start, end }

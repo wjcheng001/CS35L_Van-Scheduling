@@ -1,4 +1,3 @@
-// src/pages/Dashboard.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
@@ -50,19 +49,23 @@ function BookingCard({ booking }) {
           Purpose: <strong>{booking.tripPurpose}</strong>
         </div>
         <div className="mt-4">
-          <button
-          onClick={() => navigate("/van-return")}
-          className="w-full bg-[#5937e0] text-white py-2 px-4 rounded hover:bg-[#452bb3] transition-colors"
-          >
-          Return Van
-          </button>
-      </div>
+          {booking.status === "COMPLETED" ? (
+            <div className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded text-center">
+              This booking has been completed
+            </div>
+          ) : (
+            <button
+              onClick={() => navigate("/van-return")}
+              className="w-full bg-[#5937e0] text-white py-2 px-4 rounded hover:bg-[#452bb3] transition-colors"
+            >
+              Return Van
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
 }
-
-
 
 // ------------ ReturnCard -------------
 function ReturnCard({ ret }) {
@@ -74,27 +77,29 @@ function ReturnCard({ ret }) {
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 relative">
+    <div className="bg-white border border-gray-200 rounded-xl p-4">
       <div className="flex justify-between text-sm text-gray-700 mb-1">
         <span>
-          Date: <strong>{formatDate(ret.pickupDate)}</strong>
+          Date: <strong>{formatDate(ret.returnDate)}</strong>
         </span>
         <span>
-          Time: {ret.pickupTime} – {ret.returnTime}
+          Time: {ret.returnTime}
         </span>
       </div>
       <div className="text-sm text-gray-800 mb-2">
         Project: <strong>{ret.projectName}</strong>
       </div>
-      <img
-        src={
-          ret.status === "RETURNED"
-            ? "https://cdn.builder.io/api/v1/image/assets/TEMP/5810b8128163adcb949aa5b42230d12340fd3869?placeholderIfAbsent=true"
-            : "https://cdn.builder.io/api/v1/image/assets/TEMP/d7f404513c5b4ecd820ac0e15307fc7aa3fb72d7?placeholderIfAbsent=true"
-        }
-        alt={ret.status}
-        className="w-8 h-8 absolute top-4 right-4"
-      />
+      <div className="flex justify-end mt-2">
+        <img
+          src={
+            ret.status === "RETURNED"
+              ? "https://cdn.builder.io/api/v1/image/assets/TEMP/5810b8128163adcb949aa5b42230d12340fd3869?placeholderIfAbsent=true"
+              : "https://cdn.builder.io/api/v1/image/assets/TEMP/d7f404513c5b4ecd820ac0e15307fc7aa3fb72d7?placeholderIfAbsent=true"
+          }
+          alt={ret.status}
+          className="w-8 h-8"
+        />
+      </div>
       <div className="mt-2 text-sm font-semibold text-gray-900">
         {ret.status === "RETURNED" ? "Returned" : "Unreturned"}
       </div>
@@ -108,7 +113,9 @@ export default function Dashboard() {
   const [role, setRole] = useState(null);
   const [status, setStatus] = useState(null);
   const [bookings, setBookings] = useState([]);
-  const [returns, setReturns] = useState([]); // ← Declare `returns` state
+  const [returns, setReturns] = useState([]);
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [showAllReturns, setShowAllReturns] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -133,11 +140,7 @@ export default function Dashboard() {
           return;
         }
         const roleData = await roleRes.json();
-        console.log(roleData);
         setRole(roleData.user.role);
-
-
-
 
         // 2) Fetch user.status
         const statusRes = await fetch("http://localhost:3000/api/auth/status", {
@@ -181,7 +184,7 @@ export default function Dashboard() {
     fetchData();
   }, [navigate]);
 
-  //  Show “Loading…” until `status` is non-null:
+  // Show “Loading…” until `status` is non-null
   if (status === null) {
     return (
       <div className="flex flex-col min-h-screen bg-gray-50">
@@ -194,6 +197,13 @@ export default function Dashboard() {
     );
   }
 
+  // Filter bookings: show PENDING and CONFIRMED by default, include COMPLETED if showCompleted is true
+  const displayedBookings = showCompleted
+    ? bookings
+    : bookings.filter((b) => ["PENDING", "CONFIRMED"].includes(b.status));
+
+  // Limit returns to 3 initially, show all if toggled
+  const displayedReturns = showAllReturns ? returns : returns.slice(0, 3);
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -228,16 +238,25 @@ export default function Dashboard() {
           <p className="text-gray-600">You haven’t made any bookings yet.</p>
         ) : (
           <div className="flex flex-wrap -mx-2 mb-8">
-            {bookings.map((b) => (
-              <div key={b._id} className="px-2 mb-6 w-full">
-                <BookingCard booking={b} />
+            {displayedBookings.length === 0 && !showCompleted ? (
+              <p className="text-gray-600 w-full px-2">No active bookings.</p>
+            ) : (
+              displayedBookings.map((b) => (
+                <div key={b._id} className="px-2 mb-6 w-full">
+                  <BookingCard booking={b} />
+                </div>
+              ))
+            )}
+            {bookings.some((b) => b.status === "COMPLETED") && (
+              <div className="px-2 w-full">
+                <div
+                  className="text-center text-[#5937e0] font-semibold cursor-pointer hover:underline"
+                  onClick={() => setShowCompleted(!showCompleted)}
+                >
+                  {showCompleted ? "Show Less" : "See Completed Bookings"}
+                </div>
               </div>
-            ))}
-            <div className="px-2 w-full">
-              <div className="text-center text-[#5937e0] font-semibold cursor-pointer hover:underline">
-                See More
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -247,16 +266,21 @@ export default function Dashboard() {
           <p className="text-gray-600">No van returns to display.</p>
         ) : (
           <div className="flex flex-wrap -mx-2">
-            {returns.map((ret) => (
+            {displayedReturns.map((ret) => (
               <div key={ret._id} className="px-2 mb-4 w-full md:w-1/2 lg:w-1/3">
                 <ReturnCard ret={ret} />
               </div>
             ))}
-            <div className="px-2 w-full">
-              <div className="text-center text-[#5937e0] font-semibold cursor-pointer hover:underline">
-                See More
+            {returns.length > 3 && (
+              <div className="px-2 w-full">
+                <div
+                  className="text-center text-[#5937e0] font-semibold cursor-pointer hover:underline"
+                  onClick={() => setShowAllReturns(!showAllReturns)}
+                >
+                  {showAllReturns ? "Show Less" : "See More"}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </main>

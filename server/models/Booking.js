@@ -1,4 +1,3 @@
-// models/Booking.js
 const mongoose = require("mongoose");
 
 const bookingSchema = new mongoose.Schema(
@@ -49,7 +48,7 @@ const bookingSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["PENDING", "CONFIRMED", "REJECTED"],
+      enum: ["PENDING", "CONFIRMED", "REJECTED", "COMPLETED"],
       default: "PENDING"
     },
     vanId: {

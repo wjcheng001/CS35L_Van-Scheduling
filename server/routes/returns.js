@@ -4,13 +4,15 @@ const multer = require("multer");
 const { GridFSBucket } = require("mongodb");
 const requireAuth = require("../middlewares/requireAuth");
 const Return = require("../models/Return");
+const Booking = require("../models/Booking");
+const Van = require("../models/Van");
 const router = express.Router();
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
 
 // POST /api/returns/submit
@@ -24,17 +26,8 @@ router.post(
   ]),
   async (req, res) => {
     try {
-
-      // Validate session
-      if (!req.session.user || !req.session.user.email || !req.session.user.role) {
-        console.log("Invalid session data:", req.session.user); // Keep this for error cases
-        return res.status(401).json({ error: "Unauthorized: Invalid session" });
-      }
-
       const {
         bookingId,
-        projectName,
-        vanSerialNumber,
         returnDate,
         returnTime,
         fuelLevel,
@@ -48,33 +41,33 @@ router.post(
         acceptResponsibility,
       } = req.body;
 
+      // Validate session
+      if (!req.session.user || !req.session.user.email || !req.session.user.role) {
+        return res.status(401).json({ error: "Unauthorized: Invalid session" });
+      }
+
       // Validate required fields
       if (
         !bookingId ||
-        !projectName ||
-        !vanSerialNumber ||
         !returnDate ||
         !returnTime ||
         !parkingLocation ||
         acceptResponsibility === undefined
       ) {
-        console.log("Missing required fields:", {
-          bookingId,
-          projectName,
-          vanSerialNumber,
-          returnDate,
-          returnTime,
-          parkingLocation,
-          acceptResponsibility,
-        });
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      // Validate photos for non-admins
-      const isAdmin = req.session.user.role === "admin";
-      if (!isAdmin && (!req.files?.exteriorPhoto || !req.files?.interiorPhoto || !req.files?.dashboardPhoto)) {
-        console.log("Photos missing for non-admin:", req.files);
-        return res.status(400).json({ error: "All photos are required for non-admin users" });
+      // Validate booking
+      const userEmail = req.session.user.email;
+      const booking = await Booking.findOne({ _id: bookingId, userEmail, status: "CONFIRMED" });
+      if (!booking) {
+        return res.status(400).json({ error: "Invalid or unconfirmed booking" });
+      }
+
+      // Check for existing return
+      const existingReturn = await Return.findOne({ bookingId, userEmail });
+      if (existingReturn) {
+        return res.status(400).json({ error: "Return already submitted for this booking" });
       }
 
       // Initialize GridFS bucket
@@ -109,9 +102,9 @@ router.post(
 
       // Create return document
       const vanReturn = new Return({
-        userEmail: req.session.user.email,
+        userEmail,
         bookingId,
-        vanSerialNumber,
+        vanSerialNumber: booking.vanId.toString(),
         returnDate: new Date(returnDate),
         returnTime,
         fuelLevel: fuelLevel ? Number(fuelLevel) : null,
@@ -126,11 +119,24 @@ router.post(
         interiorPhotoId,
         dashboardPhotoId,
         acceptResponsibility: acceptResponsibility === "true",
-        projectName,
+        projectName: booking.projectName,
         status: "RETURNED",
       });
 
       await vanReturn.save();
+
+      // Update booking status to COMPLETED
+      await Booking.updateOne({ _id: bookingId }, { status: "COMPLETED" });
+
+      // Update Van busy schedule to remove the booking's time slot
+      const van = await Van.findOne({ vanId: booking.vanId });
+      if (van) {
+        van.busy = van.busy.filter(
+          (slot) => !(slot.start.getTime() === booking.pickupDate.getTime() && slot.end.getTime() === booking.returnDate.getTime())
+        );
+        await van.save();
+      }
+
       return res.json({ message: "Van return submitted successfully" });
     } catch (error) {
       console.error("Error in /api/returns/submit:", error.message, error.stack);
@@ -143,7 +149,7 @@ router.post(
 router.get("/returns", requireAuth, async (req, res) => {
   try {
     const userEmail = req.session.user.email;
-    const returns = await Return.find({ userEmail }).sort({ returnDate: -1 }).lean();
+    const returns = await Return.find({ userEmail }).sort({ createdAt: -1 }).lean();
     return res.json({ returns });
   } catch (err) {
     console.error("Error in /api/returns:", err.message, err.stack);

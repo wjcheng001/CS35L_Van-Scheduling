@@ -43,8 +43,8 @@ export default function StatusBanner({ status }) {
       }
       const bookingsData = await bookingsRes.json();
       if (bookingsData.bookings.length !== 0) {
-        alert("You already have an active van booking.");
-        return;
+        const confirmProceed = window.confirm("You already have an active van booking. Do you want to continue?");
+        if (!confirmProceed) return;
       }
       // 4) All checks passed → send them to the booking form
       navigate("/reserve");

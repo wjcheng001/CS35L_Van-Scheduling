@@ -67,8 +67,8 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api", returnsRoutes);
 
 mongoose
-  .connect(process.env.MONGO_URI || "mongodb://localhost:27017/35ldb", {
-    useNewUrlParser: true,
+  .connect(process.env.MONGO_URI, // || "mongodb://localhost:27017/35ldb", 
+  {  useNewUrlParser: true,
     useUnifiedTopology: true,
   })
   .then(async () => {
