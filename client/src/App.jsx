@@ -93,6 +93,7 @@ function App() {
         <Route path="/reservation-success" element={<ReservationSuccess />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/review/:uid" element={<AdminDriverAppReview />} />
+        <Route path="/van-return" element={<VanReturn />} />
       </Routes>
     </BrowserRouter>
   );

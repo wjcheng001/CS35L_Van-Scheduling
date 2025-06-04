@@ -27,12 +27,6 @@ router.post("/google", async (req, res) => {
       return res.status(403).json({ error: "Unauthorized domain" });
     }
 
-    req.session.user = {
-      email,
-      name,
-      picture,
-    };
-
     let user = await User.findOne({ email });
     if (!user) { // First time login
       user = await User.create({
@@ -42,6 +36,14 @@ router.post("/google", async (req, res) => {
         status: "NOT_SUBMITTED",
       });
     }
+
+    // Include role in session
+    req.session.user = {
+      email,
+      name,
+      picture,
+      role: user.role, // Add role to session
+    };
 
     return res.json({
       message: "Login successful",

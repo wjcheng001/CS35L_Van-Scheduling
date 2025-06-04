@@ -25,6 +25,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const client = new OAuth2Client(secrets.CLIENT_ID);
 
+/* for debug */
+// app.use((req, res, next) => {
+//   console.log(`Unmatched route: ${req.method} ${req.originalUrl}`);
+//   next();
+// });
 
 app.use(express.json());
 app.use(cookieParser());

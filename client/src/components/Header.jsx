@@ -124,7 +124,6 @@ export default function Header() {
             CSC Transportation
           </span>
         </Link>
-
         <nav className="main-nav">
           {isLoggedIn ? (
             <a

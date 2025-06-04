@@ -7,6 +7,7 @@ import StatusBanner from "../components/StatusBanner";
 
 // ------------ BookingCard -------------
 function BookingCard({ booking }) {
+  const navigate = useNavigate();
   const formatDate = (isoDate) => {
     const d = new Date(isoDate);
     const m = d.getMonth() + 1;
@@ -48,6 +49,14 @@ function BookingCard({ booking }) {
         <div>
           Purpose: <strong>{booking.tripPurpose}</strong>
         </div>
+        <div className="mt-4">
+          <button
+          onClick={() => navigate("/van-return")}
+          className="w-full bg-[#5937e0] text-white py-2 px-4 rounded hover:bg-[#452bb3] transition-colors"
+          >
+          Return Van
+          </button>
+      </div>
       </div>
     </div>
   );
