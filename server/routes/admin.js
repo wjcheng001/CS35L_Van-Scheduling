@@ -4,6 +4,37 @@ const requireAuth = require("../middlewares/requireAuth");
 const requireAdmin = require("../middlewares/requireAdmin");
 const router = express.Router();
 
+router.get("/users", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    // Fetch all users from the database (excluding sensitive fields if needed)
+    const users = await User.find().lean();
+    return res.json({ users });
+  } catch (err) {
+    console.error("Error in GET /users:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.get("/role", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    // Get the logged‐in user’s email from session
+    const userEmail = req.session.user.email;
+
+    // Find exactly one User document (not an array)
+    const user = await User.findOne({ email: userEmail }).lean();
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Return the user object (including `role`)
+    return res.json({ user });
+  } catch (err) {
+    console.error("Error in GET /api/admin/role:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+
 
 router.post("/review-user", requireAuth, requireAdmin, async (req, res) => {
   const { email, action } = req.body;
@@ -27,7 +58,6 @@ router.post("/review-user", requireAuth, requireAdmin, async (req, res) => {
 router.post("/approve-user", requireAuth, requireAdmin, async (req, res) => {
   const { uid } = req.body;
   try {
-    const User = mongoose.model('User');
     const user = await User.findOneAndUpdate(
       { uid },
       { $set: { status: "APPROVED" } },

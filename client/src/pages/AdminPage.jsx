@@ -5,6 +5,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 
 const AdminPage = () => {
+  const [user, setUser] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -12,30 +13,36 @@ const AdminPage = () => {
   useEffect(() => {
     async function checkAdminStatus() {
       try {
-        // Check if user is logged in and is admin
-        const sessionRes = await fetch("http://localhost:3000/api/auth/session", {
-          credentials: "include",
+        // 1) Fetch /api/admin/role to see if current user is an admin
+        const sessionRes = await fetch("http://localhost:3000/api/admin/role", {
+          credentials: "include", // send session cookie
         });
 
         if (!sessionRes.ok) {
+          // 401 or 404 or other—treat as not logged in / no access
           navigate("/login");
           return;
         }
 
         const sessionData = await sessionRes.json();
+        // sessionData.user now exists
         setUser(sessionData.user);
 
-        // Redirect if not admin
-        if (sessionData.user?.role !== "admin") {
+        // If the role is not "admin", redirect away
+        if (sessionData.user.role !== "admin") {
+          console.error("Permission denied—user is not an admin");
           navigate("/dashboard");
           return;
         }
 
         // Fetch all users
         setLoading(true);
+
         const usersRes = await fetch("http://localhost:3000/api/admin/users", {
           credentials: "include",
         });
+
+        console.log(usersRes)
 
         if (usersRes.ok) {
           const usersData = await usersRes.json();
@@ -53,21 +60,26 @@ const AdminPage = () => {
 
   const handleApprove = async (uid) => {
     try {
-      const res = await fetch(`http://localhost:3000/api/admin/approve-user/${uid}`, {
-        method: 'POST',
-        credentials: 'include',
+      const res = await fetch("http://localhost:3000/api/admin/approve-user", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid }), // send { uid: 12345 }
       });
 
-      if (res.ok) {
-        // Refresh user list
-        const usersRes = await fetch("http://localhost:3000/api/admin/users", {
-          credentials: "include",
-        });
+      if (!res.ok) {
+        const err = await res.json();
+        console.error("Approve failed:", err);
+        return;
+      }
 
-        if (usersRes.ok) {
-          const usersData = await usersRes.json();
-          setUsers(usersData.users || []);
-        }
+      // Refresh the list
+      const usersRes = await fetch("http://localhost:3000/api/admin/users", {
+        credentials: "include",
+      });
+      if (usersRes.ok) {
+        const usersData = await usersRes.json();
+        setUsers(usersData.users || []);
       }
     } catch (err) {
       console.error("Error approving user:", err);
@@ -76,26 +88,32 @@ const AdminPage = () => {
 
   const handleReject = async (uid) => {
     try {
-      const res = await fetch(`http://localhost:3000/api/admin/reject-user/${uid}`, {
-        method: 'POST',
-        credentials: 'include',
+      const res = await fetch("http://localhost:3000/api/admin/reject-user", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid }), // send { uid: 12345 }
       });
 
-      if (res.ok) {
-        // Refresh user list
-        const usersRes = await fetch("http://localhost:3000/api/admin/users", {
-          credentials: "include",
-        });
+      if (!res.ok) {
+        const err = await res.json();
+        console.error("Reject failed:", err);
+        return;
+      }
 
-        if (usersRes.ok) {
-          const usersData = await usersRes.json();
-          setUsers(usersData.users || []);
-        }
+      // Refresh the list
+      const usersRes = await fetch("http://localhost:3000/api/admin/users", {
+        credentials: "include",
+      });
+      if (usersRes.ok) {
+        const usersData = await usersRes.json();
+        setUsers(usersData.users || []);
       }
     } catch (err) {
       console.error("Error rejecting user:", err);
     }
   };
+
 
   const handleBackToDashboard = () => {
     navigate('/dashboard');

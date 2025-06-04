@@ -6,7 +6,7 @@ const requireAuth = require("../middlewares/requireAuth");
 
 const router = express.Router();
 const client = new OAuth2Client(secrets.CLIENT_ID);
-const ADMIN_EMAILS = ["transportation@uclacsc.org", "wanjun01@g.ucla.edu"];
+const ADMIN_EMAILS = ["transportation@uclacsc.org", "wanjun01@g.ucla.edu", "celinee@g.ucla.edu"];
 
 router.post("/google", async (req, res) => {
   const { idToken } = req.body;
