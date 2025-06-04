@@ -83,12 +83,12 @@ export default function StatusBanner({ status }) {
 
     case "APPROVED":
       badgeText = "APPROVED!";
-      badgeBg = "bg-purple-600";
+      badgeBg = "bg-[#5937e0]";
       messageJSX = (
         <>
           You’re approved to drive! You can now{" "}
           <span
-            className="text-purple-600 font-semibold cursor-pointer hover:underline"
+            className="text-[#5937e0] font-semibold cursor-pointer hover:underline"
             onClick={e => handleBookClick(e)}
           >
             Book a Van.
@@ -104,7 +104,7 @@ export default function StatusBanner({ status }) {
         <>
           Rejected. Contact admin for support.{" "}
           <span
-            className="text-purple-600 font-semibold cursor-pointer hover:underline"
+            className="text-[#5937e0] font-semibold cursor-pointer hover:underline"
             onClick={() => window.open("mailto:transportation@uclacsc.org")}
           >
             Contact Support.

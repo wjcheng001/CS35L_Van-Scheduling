@@ -193,7 +193,7 @@ export default function Dashboard() {
         <div className="mt-4 ml-4 w-full flex items-center justify-center">
           <button
             onClick={() => navigate("/admin")}
-            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 mb-4"
+            className="px-4 py-2 bg-[#5937e0] text-white rounded hover:bg-purple-700 mb-4"
           >
             Enter Admin
           </button>
@@ -202,7 +202,7 @@ export default function Dashboard() {
 
       <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome + subtitle */}
-        <h1 className="text-4xl font-extrabold text-purple-600 mb-2">
+        <h1 className="text-4xl font-extrabold text-[#5937e0] mb-2">
           Welcome{user ? `, ${user.name}` : ""}!
         </h1>
 
@@ -225,7 +225,7 @@ export default function Dashboard() {
               </div>
             ))}
             <div className="px-2 w-full">
-              <div className="text-center text-purple-600 font-semibold cursor-pointer hover:underline">
+              <div className="text-center text-[#5937e0] font-semibold cursor-pointer hover:underline">
                 See More
               </div>
             </div>
@@ -244,7 +244,7 @@ export default function Dashboard() {
               </div>
             ))}
             <div className="px-2 w-full">
-              <div className="text-center text-purple-600 font-semibold cursor-pointer hover:underline">
+              <div className="text-center text-[#5937e0] font-semibold cursor-pointer hover:underline">
                 See More
               </div>
             </div>
