@@ -1,37 +1,63 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { Link } from 'react-router-dom';
 import "../styles/driver-application.css"
 
-
 const DriverApplication = () => {
-  // states for handleSubmit below, guard against double submission
+  // States for handleSubmit, guard against double submission
   const [hasSubmittedBefore, setHasSubmittedBefore] = useState(false);
   const [showOverride, setShowOverride] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [dmvFile, setDmvFile] = useState(null);
+  const [certificateFile, setCertificateFile] = useState(null);
+  const dmvInputRef = useRef(null); // Ref for DMV file input
+  const certificateInputRef = useRef(null); // Ref for certificate file input
 
-  // guard against double submission
+  // Guard against double submission and check admin status
   useEffect(() => {
-    const checkSubmission = async () => {
+    const checkSubmissionAndAdmin = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/driverapp/findpriorApp", {
+        // Check prior submission
+        const submissionRes = await fetch("http://localhost:3000/api/driverapp/findpriorApp", {
           credentials: "include",
         });
-        if (res.ok) {
-          const data = await res.json();
+        if (submissionRes.ok) {
+          const data = await submissionRes.json();
           if (data.hasDriverApplication) {
             setHasSubmittedBefore(true);
           }
         }
+
+        // Check admin status
+        const adminRes = await fetch("http://localhost:3000/api/admin/role", {
+          credentials: "include",
+        });
+        if (adminRes.ok) {
+          const adminData = await adminRes.json();
+          setIsAdmin(adminData.user?.role === 'admin');
+        }
       } catch (err) {
-        console.error("Failed to check prior submission:", err);
+        console.error("Failed to check prior submission or admin status:", err);
       }
     };
 
-    checkSubmission();
+    checkSubmissionAndAdmin();
   }, []);
 
-  // When user press submit
+  // Handle file input changes
+  const handleFileChange = (e, setFile, inputRef) => {
+    const file = e.target.files[0];
+    setFile(file || null);
+  };
+
+  // Handle file deletion
+  const handleFileDelete = (setFile, inputRef) => {
+    setFile(null);
+    inputRef.current.value = null; // Reset the file input
+  };
+
+  // When user presses submit
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -45,37 +71,50 @@ const DriverApplication = () => {
 
     const form = e.target;
 
-  const payload = {
-    fullName: form[0].value.trim(), // ← Will be stored in user.name (not in driverApplication document)
-    licenseNumber: form[1].value.trim(),
-    licenseState: form[2].value.trim(),
-    phoneNumber: form[3].value.trim(),
-    project: form[4].value.trim(),
-    licenseExpiry: form[5].value,
-    dob: form[6].value,
-    drivingPoints: form[7].value,
-    dstDate: form[8].value,
-  };
+    const payload = {
+      fullName: form[0].value.trim(),
+      licenseNumber: form[1].value.trim(),
+      licenseState: form[2].value.trim(),
+      phoneNumber: form[3].value.trim(),
+      project: form[4].value.trim(),
+      licenseExpiry: form[5].value,
+      dob: form[6].value,
+      drivingPoints: form[7].value,
+      dstDate: form[8].value,
+      dmvFile,
+      certificateFile,
+    };
 
     // ## Validation of Non-null fields START ###
     // Validate main fields
     for (const [key, value] of Object.entries(payload)) {
-      if (!value) {
+      if (!value && key !== "dmvFile" && key !== "certificateFile") {
         alert(`Please fill out the "${key}" field.`);
+        return;
+      }
+    }
+
+    // Validate file uploads for non-admins
+    if (!isAdmin) {
+      if (!dmvFile) {
+        alert("Please upload your DMV Pull file.");
+        return;
+      }
+      if (!certificateFile) {
+        alert("Please upload your UCLA Worksafe Driver Safety Training Certificate.");
         return;
       }
     }
 
     // Validate checkboxes (assumes 4 checkboxes in order)
     const checkboxes = [form[11], form[12], form[13], form[14]];
-
     const unchecked = checkboxes.findIndex((cb) => !cb.checked);
     if (unchecked !== -1) {
       alert("Please check all acknowledgments before submitting.");
       return;
     }
 
-    // Validate signature field (assumes it's form[13])
+    // Validate signature field (assumes it's form[15])
     const signature = form[15].value.trim();
     if (!signature) {
       alert("Please enter your full name as a legally binding signature.");
@@ -84,13 +123,15 @@ const DriverApplication = () => {
     // ## Validation of Non-null fields END ###
 
     try {
+      const formData = new FormData();
+      for (const [key, value] of Object.entries(payload)) {
+        formData.append(key, value);
+      }
+
       const res = await fetch("http://localhost:3000/api/driverapp/process", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         credentials: "include",
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       const data = await res.json();
@@ -99,7 +140,7 @@ const DriverApplication = () => {
         alert("Submission failed: " + (data.error || "Unknown error"));
       } else {
         alert("Submitted successfully");
-        window.location.href = "/dashboard"; // redirect to dashboard for successful submission
+        window.location.href = "/dashboard";
       }
     } catch (err) {
       console.error("Submission error:", err);
@@ -278,22 +319,64 @@ const DriverApplication = () => {
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
                   DMV Pull
                 </label>
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  className="w-full h-[179px] px-4 py-2 rounded-[39px] border-2 border-black"
-                />
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="w-full h-[179px] px-4 py-2 rounded-[39px] border-2 border-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#5937E0] file:text-white hover:file:bg-[#4b2db3] opacity-0 absolute"
+                    onChange={(e) => handleFileChange(e, setDmvFile, dmvInputRef)}
+                    ref={dmvInputRef}
+                  />
+                  <div className="w-full h-[179px] px-4 py-2 rounded-[39px] border-2 border-black flex items-center justify-center bg-white">
+                    <span className="text-black font-roboto text-sm">
+                      {dmvFile ? dmvFile.name : "Click Here to Upload File"}
+                    </span>
+                  </div>
+                  {dmvFile && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="text-black font-roboto text-sm">{dmvFile.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleFileDelete(setDmvFile, dmvInputRef)}
+                        className="text-red-600 font-roboto text-sm underline hover:bg-red-100 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-col gap-2 w-[462px] md:w-[calc(50%-10px)] sm:w-full">
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
                   UCLA Worksafe Driver safety training Certificate
                 </label>
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  className="w-full h-[179px] px-4 py-2 rounded-[29px] border-2 border-black"
-                />
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="w-full h-[179px] px-4 py-2 rounded-[29px] border-2 border-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#5937E0] file:text-white hover:file:bg-[#4b2db3] opacity-0 absolute"
+                    onChange={(e) => handleFileChange(e, setCertificateFile, certificateInputRef)}
+                    ref={certificateInputRef}
+                  />
+                  <div className="w-full h-[179px] px-4 py-2 rounded-[39px] border-2 border-black flex items-center justify-center bg-white">
+                    <span className="text-black font-roboto text-sm">
+                      {certificateFile ? certificateFile.name : "Click Here to Upload File"}
+                    </span>
+                  </div>
+                  {certificateFile && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="text-black font-roboto text-sm">{certificateFile.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleFileDelete(setCertificateFile, certificateInputRef)}
+                        className="text-red-600 font-roboto text-sm underline hover:bg-red-100 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -363,7 +446,7 @@ const DriverApplication = () => {
                 />
                 <label className="text-black font-roboto text-sm font-normal leading-[15px]">
                   I declare that I will return the vans and keys on time with
-                  &gt;75% fuel level. I understand that failure to do so results
+                  {' >'}75% fuel level. I understand that failure to do so results
                   in a deduction of my project's credit score.
                 </label>
               </div>
