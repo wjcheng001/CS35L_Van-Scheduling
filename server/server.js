@@ -439,10 +439,7 @@ mongoose
 // -----------------------------------------------------------
 // GET /api/auth/findpriorApp
 // -----------------------------------------------------------
-app.get("/api/auth/findpriorApp", async (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).json({ error: "Not logged in" });
-  }
+app.get("/api/auth/findpriorApp", requireAuth, async (req, res) => {
   try {
   const user = await User.findOne({ email: req.session.user.email }).lean();
   if (!user) {
