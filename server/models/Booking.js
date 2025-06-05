@@ -48,13 +48,12 @@ const bookingSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["PENDING", "CONFIRMED", "REJECTED"],
+      enum: ["PENDING", "CONFIRMED", "REJECTED", "COMPLETED"],
       default: "PENDING"
     },
-    // If you want to compute/display an automatic credit cost:
-    creditCost: {
+    vanId: {
       type: Number,
-      default: 0
+      required: false
     }
   },
   { timestamps: true }

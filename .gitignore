@@ -1,7 +1,5 @@
 # Ignore node_modules everywhere
 node_modules/
 client/node_modules/
-client/src/secrets.js
 server/node_modules/
-server/secrets.js
 server/notes.txt

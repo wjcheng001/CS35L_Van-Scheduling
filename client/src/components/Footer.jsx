@@ -13,7 +13,9 @@ export default function Footer() {
               className="logo-image"
               alt="CSCVAN Logo"
             />
-            <span className="logo-text">CSCVAN</span>
+            <span className="logo-text" style={{ whiteSpace: "nowrap" }}>
+              CSC Transportation
+            </span>
           </div>
 
           <div className="contact-item">

@@ -6,16 +6,68 @@ const returnSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    pickupDate: {
+    bookingId: {
+      type: String,
+      required: true,
+    },
+    vanSerialNumber: {
+      type: String,
+      required: true,
+    },
+    returnDate: {
       type: Date,
       required: true,
     },
     pickupTime: {
       type: String,
-      required: true,
     },
     returnTime: {
       type: String,
+      required: true,
+    },
+    fuelLevel: {
+      type: Number,
+      min: 0,
+      max: 100,
+    },
+    parkingLocation: {
+      type: String,
+      required: true,
+    },
+    notifiedKeyProblem: {
+      type: Boolean,
+      default: false,
+    },
+    hadAccident: {
+      type: Boolean,
+      default: false,
+    },
+    cleanedVan: {
+      type: Boolean,
+      default: false,
+    },
+    refueledVan: {
+      type: Boolean,
+      default: false,
+    },
+    experiencedProblem: {
+      type: Boolean,
+      default: false,
+    },
+    damageDescription: {
+      type: String,
+    },
+    exteriorPhotoId: {
+      type: mongoose.Schema.Types.ObjectId,
+    },
+    interiorPhotoId: {
+      type: mongoose.Schema.Types.ObjectId,
+    },
+    dashboardPhotoId: {
+      type: mongoose.Schema.Types.ObjectId,
+    },
+    acceptResponsibility: {
+      type: Boolean,
       required: true,
     },
     projectName: {
@@ -25,7 +77,7 @@ const returnSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["RETURNED", "UNRETURNED"],
-      default: "UNRETURNED",
+      default: "RETURNED",
       required: true,
     },
   },

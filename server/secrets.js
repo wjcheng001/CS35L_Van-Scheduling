@@ -1,0 +1,3 @@
+module.exports = {
+  CLIENT_ID: "539152497200-qgajpt09gnlgolmik3duohq8lrhv4sqs.apps.googleusercontent.com"
+}

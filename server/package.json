@@ -16,8 +16,9 @@
     "express": "^5.1.0",
     "express-session": "^1.18.1",
     "google-auth-library": "^9.15.1",
-    "mongodb": "^6.16.0",
+    "mongodb": "^6.17.0",
     "mongoose": "^8.14.1",
+    "multer": "^2.0.1",
     "nodemailer": "^7.0.2"
   }
 }
