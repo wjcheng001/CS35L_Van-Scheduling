@@ -1,19 +1,20 @@
 const express = require("express");
 const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
-const secrets = require("../secrets");
 const requireAuth = require("../middlewares/requireAuth");
 
+const CLIENT_ID = process.env.CLIENT_ID;
+const ADMIN_EMAILS = process.env.ADMIN_EMAILS;
+
 const router = express.Router();
-const client = new OAuth2Client(secrets.CLIENT_ID);
-const ADMIN_EMAILS = ["transportation@uclacsc.org", "wanjun01@g.ucla.edu", "celinee@g.ucla.edu"];
+const client = new OAuth2Client(CLIENT_ID);
 
 router.post("/google", async (req, res) => {
   const { idToken } = req.body;
   try {
     const ticket = await client.verifyIdToken({
       idToken,
-      audience: secrets.CLIENT_ID,
+      audience: CLIENT_ID,
     });
     const payload = ticket.getPayload();
     const { email, name, picture } = payload;

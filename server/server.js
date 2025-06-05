@@ -4,8 +4,6 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const mongoose = require("mongoose");
-const { OAuth2Client } = require("google-auth-library");
-const secrets = require("./secrets.js");
 const Van = require("./models/Van");
 
 const VAN_IDS = [
@@ -23,7 +21,6 @@ const VAN_IDS = [
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const client = new OAuth2Client(secrets.CLIENT_ID);
 
 /* for debug */
 // app.use((req, res, next) => {
