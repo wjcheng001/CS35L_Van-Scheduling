@@ -1,8 +1,10 @@
 # CSCVAN Van-Scheduling App
 
-This README explains how to set up, configure, and run the full-stack CSCVAN van-scheduling application locally. It covers installing dependencies, configuring environment files (with a pre-set Google Client ID), running a local MongoDB, and starting both backend and frontend.
+> 🚨 **Before you begin, **disable all browser extensions** (especially ad blockers, privacy tools, and any Google-related extensions). Extensions often block Google OAuth flows, preventing login.**
 
-> **Important**: We have pre-configured the Google OAuth Client ID so that the grader can run the app without needing their own credentials. Do **not** change the Client ID in `server/secrets.js` or `client/src/secrets.js`. To test admin routes, follow the “Testing Admin Functionality” section below.
+This README explains how to set up, configure, and run the full-stack CSCVAN van-scheduling application locally. It covers installing dependencies, configuring environment files, running a local MongoDB, and starting both backend and frontend.
+
+> **Important**: We have pre-configured keys via `.env` files so the grader can run the app without needing to add secrets manually. **Do not** add or edit any other secret files.
 
 ---
 
@@ -10,16 +12,14 @@ This README explains how to set up, configure, and run the full-stack CSCVAN van
 
 1. [Project Structure](#project-structure)
 2. [Prerequisites](#prerequisites)
-3. [Pre-configured Secrets](#pre-configured-secrets)
-4. [Environment Configuration](#environment-configuration)
-5. [Installing Dependencies](#installing-dependencies)
-6. [Setting Up MongoDB Locally](#setting-up-mongodb-locally)
-7. [Running the Backend (Express + MongoDB)](#running-the-backend-express--mongodb)
-8. [Running the Frontend (React)](#running-the-frontend-react)
-9. [Testing Admin Functionality](#testing-admin-functionality)
-10. [Building for Production](#building-for-production)
-11. [File Uploads & GridFS](#file-uploads--gridfs)
-12. [Common Troubleshooting](#common-troubleshooting)
+3. [Environment Configuration](#environment-configuration)
+4. [Installing Dependencies](#installing-dependencies)
+5. [Setting Up MongoDB Locally](#setting-up-mongodb-locally)
+6. [Running the Backend (Express + MongoDB)](#running-the-backend-express--mongodb)
+7. [Running the Frontend (React)](#running-the-frontend-react)
+8. [Testing Admin Functionality](#testing-admin-functionality)
+9. [Build & Deployment Checklist](#build--deployment-checklist)
+10. [Common Troubleshooting](#common-troubleshooting)
 
 ---
 
@@ -34,9 +34,9 @@ CS35L_Van-Scheduling/
 │   │   ├── components/
 │   │   ├── pages/
 │   │   ├── styles/
-│   │   ├── secrets.js            ← Exports { clientId: "539152497200-…sqs.apps.googleusercontent.com" }
 │   │   ├── App.jsx
 │   │   └── main.jsx (or index.jsx)
+│   ├── .env                       ← VITE_CLIENT_ID="539152497200-…sqs.apps.googleusercontent.com"
 │   ├── package.json
 │   ├── vite.config.js
 │   └── README.md (optional)
@@ -56,10 +56,10 @@ CS35L_Van-Scheduling/
 │   │   ├── bookings.js
 │   │   ├── driverapp.js
 │   │   └── returns.js
-│   ├── .env.example              ← “MONGODB_URI=…” template
-│   ├── .env                      ← You create this with: MONGODB_URI="mongodb://localhost:27017/35ldb"
-│   ├── secrets.js                ← Exports { CLIENT_ID: "539152497200-…sqs.apps.googleusercontent.com" }
-│   ├── server.js                 ← Main entry point
+│   ├── .env                       ← MONGO_URI="mongodb://localhost:27017/35ldb"
+│   │                              CLIENT_ID="539152497200-…sqs.apps.googleusercontent.com"
+│   │                              ADMIN_EMAILS="transportation@uclacsc.org,wanjun01@g.ucla.edu,celinee@g.ucla.edu,zhaochen@g.ucla.edu"
+│   ├── server.js
 │   └── package.json
 │
 └── README.md                     ← (This file)
@@ -70,45 +70,43 @@ CS35L_Van-Scheduling/
 ## Prerequisites
 
 1. **Node.js & npm** (v16+ recommended)
+   Verify:
+
+   ```bash
+   node -v
+   npm -v
+   ```
 2. **Git**
 3. **MongoDB** (local)
 
 ---
 
-## Pre-configured Secrets
-
-To simplify grading, we have already provided the Google OAuth Client ID in these two files; **do not change them**:
-
-### 1. `server/secrets.js`
-
-```js
-// server/secrets.js
-module.exports = {
-  CLIENT_ID: "539152497200-qgajpt09gnlgolmik3duohq8lrhv4sqs.apps.googleusercontent.com"
-};
-```
-
-### 2. `client/src/secrets.js`
-
-```js
-// client/src/secrets.js
-const secrets = {
-  clientId: "539152497200-qgajpt09gnlgolmik3duohq8lrhv4sqs.apps.googleusercontent.com"
-};
-export default secrets;
-```
-
----
-
 ## Environment Configuration
 
-### 1. Backend: `server/.env`
+### 1. Frontend `.env` (client/.env)
 
-Copy `server/.env.example` to `server/.env` and set:
+Create a file named `.env` in the `client/` folder with exactly:
 
 ```
-MONGODB_URI="mongodb://localhost:27017/35ldb"
+VITE_CLIENT_ID="539152497200-qgajpt09gnlgolmik3duohq8lrhv4sqs.apps.googleusercontent.com"
 ```
+
+> **Do not** prefix with anything other than `VITE_`.
+> **Do not** store additional secrets here.
+
+### 2. Backend `.env` (server/.env)
+
+Create or update `server/.env` with:
+
+```
+MONGO_URI="mongodb://localhost:27017/35ldb"
+CLIENT_ID="539152497200-qgajpt09gnlgolmik3duohq8lrhv4sqs.apps.googleusercontent.com"
+ADMIN_EMAILS="transportation@uclacsc.org,wanjun01@g.ucla.edu,celinee@g.ucla.edu,zhaochen@g.ucla.edu"
+```
+
+* **MONGO\_URI** points to your local MongoDB instance.
+* **CLIENT\_ID** matches the Google OAuth Client ID.
+* **ADMIN\_EMAILS** is a comma-separated list of allowed admin emails.
 
 ---
 
@@ -152,7 +150,7 @@ npm install
 
 ## Running the Backend (Express + MongoDB)
 
-1. Navigate to `server/`:
+1. Open a terminal and navigate to `server/`:
 
    ```bash
    cd server
@@ -174,7 +172,9 @@ npm install
 
 ## Running the Frontend (React)
 
-1. Navigate to `client/`:
+> 🚨 **Reminder**: **Disable all browser extensions** (especially ad blockers or privacy plugins) before clicking “Sign in with Google.”
+
+1. In a new terminal, navigate to `client/`:
 
    ```bash
    cd client
@@ -184,161 +184,145 @@ npm install
    ```bash
    npm run dev
    ```
-3. Open `http://localhost:5173` in your browser.
-4. Click **Sign in with Google** and use any valid `@ucla.edu` or `@g.ucla.edu` account to log in.
+3. Open your browser at `http://localhost:5173`.
+4. Click **Sign in with Google** and use any valid `@ucla.edu` or `@g.ucla.edu` account to log in. Without extensions disabled, OAuth may fail silently.
 
 ---
 
 ## Testing Admin Functionality
 
-By default, only the following emails are treated as admins:
+By default, the following admin emails are in `ADMIN_EMAILS`:
 
 ```
 transportation@uclacsc.org
 wanjun01@g.ucla.edu
 celinee@g.ucla.edu
+zhaochen@g.ucla.edu
 ```
 
-If a grader wants to test admin-only routes using their own Google account, follow one of these methods:
+If you (the grader) want to test admin-only routes using your own Google account, follow one of these methods:
 
 ### Option A: Add Your Email Before Launching (Recommended)
 
-1. **Edit `server/routes/auth.js`:**
+1. In `server/.env`, append your email to `ADMIN_EMAILS`:
 
-   ```diff
-   // server/routes/auth.js
-   const ADMIN_EMAILS = [
-     "transportation@uclacsc.org",
-     "wanjun01@g.ucla.edu",
-     "celinee@g.ucla.edu",
-   + "your_test_email@g.ucla.edu"
-   ];
    ```
-2. **Edit `server/middlewares/requireAdmin.js`:**
-
-   ```diff
-   // server/middlewares/requireAdmin.js
-   const ADMIN_EMAILS = [
-     "transportation@uclacsc.org",
-     "wanjun01@g.ucla.edu",
-     "celinee@g.ucla.edu",
-   + "your_test_email@g.ucla.edu"
-   ];
+   ADMIN_EMAILS="transportation@uclacsc.org,wanjun01@g.ucla.edu,celinee@g.ucla.edu,zhaochen@g.ucla.edu,grader123@g.ucla.edu"
    ```
-3. **Restart the server** (so the changes take effect):
+2. Restart the server (so it picks up the updated `ADMIN_EMAILS`):
 
    ```bash
    cd server
    node server.js
    ```
-4. **Sign in** at `http://localhost:5173` with `your_test_email@g.ucla.edu`.
+3. In your browser, disabled extensions, go to `http://localhost:5173`, and sign in with `grader123@g.ucla.edu`.
 
-   * The first time you log in, the backend recognizes that your email is in `ADMIN_EMAILS` and creates your user document with `role: "admin"`.
-   * On the Dashboard, you’ll see **Admin Tools** appear immediately.
+   * The backend will create your user record with `role: "admin"`.
+   * On the Dashboard, you’ll immediately see **Admin Tools**.
 
 ### Option B: If You’ve Already Signed In as a Regular User
 
-If you logged in before adding your email to `ADMIN_EMAILS`, your existing user document will have `role: "user"`. Even after updating the code, the server still sees you as a non-admin. To fix that:
+If you logged in before editing `ADMIN_EMAILS`, your existing user record remains `role: "user”`. To fix:
 
-1. **Delete your existing user record from MongoDB**:
+1. Open Mongo shell:
 
    ```bash
    mongosh 35ldb
-   db.users.deleteOne({ email: "your_test_email@g.ucla.edu" })
+   ```
+2. Delete your existing user:
+
+   ```js
+   db.users.deleteOne({ email: "grader123@g.ucla.edu" })
    exit
    ```
-2. **Restart the server** (so it picks up the updated `ADMIN_EMAILS`):
+3. Restart the server:
 
    ```bash
    cd server
    node server.js
    ```
-3. **Sign in again** at `http://localhost:5173` with `your_test_email@g.ucla.edu`.
+4. Sign in again at `http://localhost:5173` with `grader123@g.ucla.edu`.
 
-   * Now the backend will create a fresh user document with `role: "admin"`.
+   * Now the backend will create you with `role: "admin"`.
+
+Once you have an admin session, you can:
+
+* Visit `GET http://localhost:3000/api/admin/users`
+* Visit `GET http://localhost:3000/api/admin/pending-users`
+* `POST http://localhost:3000/api/admin/approve-user` with `{ "uid": ... }`
+* `POST http://localhost:3000/api/admin/reject-user` with `{ "uid": ... }`
 
 ---
 
-## File Uploads & GridFS
+## Build & Deployment Checklist
 
-* Multer’s `memoryStorage` buffers file uploads.
-* We stream them into a `GridFSBucket` named `"driverFiles"`.
-* The resulting `ObjectId` (e.g. `dmvFileId`) is stored in `user.driverApplication`.
-* To download files, a route can call `bucket.openDownloadStream(ObjectId)` and pipe to the response.
+1. `git init` (if not already a repo)
+2. **Commit** changes in logical chunks:
+
+   * Server setup
+   * Models/routes
+   * React scaffold
+   * DriverApp + Multer
+   * README updates
+3. **Push** to a private GitHub repo:
+
+   ```bash
+   git remote add origin https://github.com/your-username/csc-van-app.git
+   git add .
+   git commit -m "Initial setup: backend + frontend skeleton"
+   git push -u origin main
+   ```
+4. Ensure `.env` files are **not** committed.
 
 ---
 
 ## Common Troubleshooting
 
-1. **“Unexpected token ‘<’” on multipart submission**
+1. **OAuth keeps failing / client ID undefined**
 
-   * Ensure `upload.fields(...)` (Multer) is used in `driverapp.js` so Express does not try to parse `multipart/form-data` as JSON.
+   * Make sure `client/.env` exists at project root, not under `src/`.
+   * Use exactly `VITE_CLIENT_ID="..."`.
+   * Restart Vite after editing `.env`.
+   * **Disable all browser extensions** before testing.
 
 2. **403 on admin routes**
 
-   * Confirm your email is in `ADMIN_EMAILS` in **both** `auth.js` and `requireAdmin.js`, and restart server.
-   * If you already signed in as a non-admin, delete your user document from MongoDB (see “Option B” above).
+   * Confirm your email is in the comma-separated `ADMIN_EMAILS` in `server/.env`.
+   * If you signed in before adding yourself, delete your user from MongoDB, restart server, sign in again.
 
-3. **Session/CORS issues**
+3. **“Unexpected token ‘<’” on file upload**
+
+   * Ensure Multer’s `upload.fields(...)` is used in `driverapp.js` so Express doesn’t parse `multipart/form-data` as JSON.
+
+4. **Session/CORS issues**
 
    * Backend must include:
 
      ```js
      app.use(cors({ origin: "http://localhost:5173", credentials: true }));
      app.use(cookieParser());
-     app.use(session({ secret: process.env.SESSION_SECRET, resave: false, saveUninitialized: false, cookie: { httpOnly: true, sameSite: "lax" } }));
+     app.use(session({
+       secret: process.env.SESSION_SECRET || "replace-with-secure-secret",
+       resave: false,
+       saveUninitialized: false,
+       cookie: { httpOnly: true, sameSite: "lax" }
+     }));
      ```
    * Frontend fetch calls must use `credentials: "include"`.
 
-4. **MongoDB connection errors**
+5. **MongoDB connection errors**
 
-   * Check `MONGODB_URI` in `server/.env`.
+   * Double-check `MONGO_URI` in `server/.env`.
+   * Confirm MongoDB is running (`brew services start mongodb-community@6.0` or manually `mongod --dbpath /usr/local/var/mongodb`).
 
-5. **MIME-type rejections**
+6. **MIME-type rejections**
 
-   * Multer’s fileFilter only allows JPEG, PNG, GIF, PDF. Uploading other types gives a 400 JSON error.
+   * File uploads only allow `image/jpeg`, `image/png`, `image/gif`, `application/pdf`.
 
-6. **Google OAuth “redirect\_uri\_mismatch”**
+7. **Browser extensions interfering with Google OAuth**
 
-   * In Google Cloud Console, set:
-
-     * Authorized JS origin: `http://localhost:5173`
-     * Authorized redirect URI: `http://localhost:3000/api/auth/google/callback`
-   * The Client ID in `secrets.js` must match the one in Google Cloud.
+   * **DISABLE ALL EXTENSIONS** before clicking “Sign in with Google.”
 
 ---
 
-## Summary
-
-1. **Clone**
-
-   ```bash
-   git clone <repo-url>
-   cd CS35L_Van-Scheduling
-   ```
-
-2. **Configure server**
-
-   ```bash
-   cd server
-   cp .env.example .env
-   # set MONGODB_URI="mongodb://localhost:27017/35ldb"
-   npm install
-   ```
-
-3. **Configure client & run**
-
-   ```bash
-   cd client
-   npm install
-   npm run dev
-   ```
-
-4. **Run server**
-
-   ```bash
-   cd server
-   node server.js
-   ```
-
-5. **Visit** `http://localhost:5173`, sign in with Google, test “Admin Tools” (after adding your email to `ADMIN_EMAILS` as described).
+By following these steps carefully—especially disabling extensions, editing your `.env` before first login, and using the correct environment variables—you’ll have a fully functional local instance of CSCVAN with both user and admin functionality testable. Good luck!
