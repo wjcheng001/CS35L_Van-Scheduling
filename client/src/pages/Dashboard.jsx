@@ -241,18 +241,26 @@ export default function Dashboard() {
             {displayedBookings.length === 0 && !showCompleted ? (
               <p className="text-gray-600 w-full px-2">No active bookings.</p>
             ) : (
-                displayedBookings
-                  .sort((a, b) => {
-                    if (a.status === "COMPLETED" && b.status !== "COMPLETED") return 1;
-                    if (a.status !== "COMPLETED" && b.status === "COMPLETED") return -1;
-                    return 0;
-                  })
-                  .map((b) => (
-                    <div key={b._id} className="px-2 mb-6 w-full">
-                      <BookingCard booking={b} />
-                    </div>
-              ) )
+              (() => {
+                const nonCompleted = displayedBookings.filter(
+                  (b) => b.status !== "COMPLETED"
+                );
+
+                const completed = displayedBookings
+                  .filter((b) => b.status === "COMPLETED")
+                  .sort((a, b) => new Date(b.returnDate) - new Date(a.returnDate))
+                  .slice(0, 2);
+
+                const combined = [...nonCompleted, ...completed];
+
+                return combined.map((b) => (
+                  <div key={b._id} className="px-2 mb-6 w-full">
+                    <BookingCard booking={b} />
+                  </div>
+                ));
+              })()
             )}
+
             {bookings.some((b) => b.status === "COMPLETED") && (
               <div className="px-2 w-full">
                 <div

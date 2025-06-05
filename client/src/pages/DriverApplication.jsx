@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import "../styles/driver-application.css"
 
 // List of U.S. state codes
@@ -25,31 +25,27 @@ const projects = [
 ];
 
 const DriverApplication = () => {
-  // States for handleSubmit, guard against double submission
+  const navigate = useNavigate();
   const [hasSubmittedBefore, setHasSubmittedBefore] = useState(false);
   const [showOverride, setShowOverride] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [dmvFile, setDmvFile] = useState(null);
   const [certificateFile, setCertificateFile] = useState(null);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [error, setError] = useState("");
   const dmvInputRef = useRef(null);
   const certificateInputRef = useRef(null);
-  
-  // States for license state autocomplete
   const [licenseState, setLicenseState] = useState("");
   const [stateSuggestions, setStateSuggestions] = useState([]);
   const [showStateSuggestions, setShowStateSuggestions] = useState(false);
-
-  // States for project multi-select
   const [projectInput, setProjectInput] = useState("");
   const [selectedProjects, setSelectedProjects] = useState([]);
   const [projectSuggestions, setProjectSuggestions] = useState([]);
   const [showProjectSuggestions, setShowProjectSuggestions] = useState(false);
 
-  // Guard against double submission and check admin status
   useEffect(() => {
     const checkSubmissionAndAdmin = async () => {
       try {
-        // Check prior submission
         const submissionRes = await fetch("http://localhost:3000/api/driverapp/findpriorApp", {
           credentials: "include",
         });
@@ -59,8 +55,6 @@ const DriverApplication = () => {
             setHasSubmittedBefore(true);
           }
         }
-
-        // Check admin status
         const adminRes = await fetch("http://localhost:3000/api/admin/role", {
           credentials: "include",
         });
@@ -72,15 +66,12 @@ const DriverApplication = () => {
         console.error("Failed to check prior submission or admin status:", err);
       }
     };
-
     checkSubmissionAndAdmin();
   }, []);
 
-  // Handle license state input change
   const handleLicenseStateChange = (e) => {
     const value = e.target.value.toUpperCase();
     setLicenseState(value);
-
     if (value) {
       const filteredStates = usStates.filter((state) =>
         state.toUpperCase().startsWith(value)
@@ -93,18 +84,15 @@ const DriverApplication = () => {
     }
   };
 
-  // Handle license state suggestion selection
   const handleStateSuggestionClick = (state) => {
     setLicenseState(state);
     setStateSuggestions([]);
     setShowStateSuggestions(false);
   };
 
-  // Handle project input change
   const handleProjectInputChange = (e) => {
     const value = e.target.value;
     setProjectInput(value);
-
     if (value) {
       const filteredProjects = projects.filter((project) =>
         project.toLowerCase().startsWith(value.toLowerCase())
@@ -117,7 +105,6 @@ const DriverApplication = () => {
     }
   };
 
-  // Handle project selection (from suggestions or custom input)
   const handleProjectSelect = (project) => {
     if (selectedProjects.length >= 3) {
       alert("You can select up to 3 projects only.");
@@ -131,35 +118,68 @@ const DriverApplication = () => {
     setShowProjectSuggestions(false);
   };
 
-  // Handle Enter key for project input
   const handleProjectKeyDown = (e) => {
     if (e.key === "Enter" && projectInput) {
-      e.preventDefault(); // Prevent form submission
+      e.preventDefault();
       handleProjectSelect(projectInput.trim());
     }
   };
 
-  // Handle project removal
   const handleProjectRemove = (projectToRemove) => {
     setSelectedProjects(selectedProjects.filter((project) => project !== projectToRemove));
   };
 
-  // Handle file input changes
   const handleFileChange = (e, setFile, inputRef) => {
     const file = e.target.files[0];
     setFile(file || null);
   };
 
-  // Handle file deletion
   const handleFileDelete = (setFile, inputRef) => {
     setFile(null);
     inputRef.current.value = null;
   };
 
-  // When user presses submit
+  const formatPhoneNumber = (value) => {
+    const numbers = value.replace(/\D/g, "");
+    if (numbers.length === 0) {
+      return "";
+    }
+    if (numbers.length <= 3) {
+      return `(${numbers}`;
+    } else if (numbers.length <= 6) {
+      return `(${numbers.slice(0, 3)}) ${numbers.slice(3)}`;
+    } else {
+      return `(${numbers.slice(0, 3)}) ${numbers.slice(3, 6)}-${numbers.slice(6, 10)}`;
+    }
+  };
+
+  const handlePhoneNumberChange = (e) => {
+    const value = e.target.value.replace(/\D/g, "");
+    if (value.length <= 10) {
+      setPhoneNumber(formatPhoneNumber(value));
+      setError("");
+    } else {
+      setError("Phone number must be exactly 10 digits.");
+    }
+  };
+
+  const handleDrivingPointsChange = (e) => {
+    const value = e.target.value;
+    if (value === "" || /^[0-9]*$/.test(value)) {
+      e.target.value = value;
+      setError("");
+    } else {
+      setError("Number of points must be a number.");
+      e.target.value = value.replace(/\D/g, "");
+    }
+  };
+
+  const handleBackToDashboard = () => {
+    navigate('/dashboard');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (hasSubmittedBefore && !showOverride) {
       const confirm = window.confirm(
         "You have already submitted an application. Submitting again will overwrite your previous submission.\n\nDo you want to continue?"
@@ -167,17 +187,14 @@ const DriverApplication = () => {
       if (!confirm) return;
       setShowOverride(true);
     }
-
     const form = e.target;
-
-    // Collect form data
     const formData = new FormData(form);
     const payload = {
       fullName: formData.get("fullName")?.trim(),
       licenseNumber: formData.get("licenseNumber")?.trim(),
       licenseState: licenseState,
-      phoneNumber: formData.get("phoneNumber")?.trim(),
-      project: selectedProjects.join(", "), // Join projects into a string
+      phoneNumber: phoneNumber.replace(/\D/g, ""),
+      project: selectedProjects.join(", "),
       licenseExpiry: formData.get("licenseExpiry"),
       dob: formData.get("dob"),
       drivingPoints: formData.get("drivingPoints"),
@@ -185,16 +202,16 @@ const DriverApplication = () => {
       dmvFile,
       certificateFile,
     };
-
-    // Validate main fields
     for (const [key, value] of Object.entries(payload)) {
       if (!value && key !== "dmvFile" && key !== "certificateFile") {
         alert(`Please fill out the "${key}" field.`);
         return;
       }
     }
-
-    // Validate file uploads for non-admins
+    if (payload.phoneNumber.length !== 10) {
+      alert("Phone number must be exactly 10 digits.");
+      return;
+    }
     if (!isAdmin) {
       if (!dmvFile) {
         alert("Please upload your DMV Pull file.");
@@ -205,8 +222,6 @@ const DriverApplication = () => {
         return;
       }
     }
-
-    // Validate checkboxes
     const checkboxNames = [
       "acknowledgeKeys",
       "acknowledgeTolls",
@@ -219,29 +234,22 @@ const DriverApplication = () => {
         return;
       }
     }
-
-    // Validate signature
     const signature = formData.get("signature")?.trim();
     if (!signature) {
       alert("Please enter your full name as a legally binding signature.");
       return;
     }
-
     try {
-      // Append files to FormData for submission
       const submitData = new FormData();
       for (const [key, value] of Object.entries(payload)) {
         submitData.append(key, value);
       }
-
       const res = await fetch("http://localhost:3000/api/driverapp/process", {
         method: "POST",
         credentials: "include",
         body: submitData,
       });
-
       const data = await res.json();
-
       if (!res.ok) {
         alert("Submission failed: " + (data.error || "Unknown error"));
       } else {
@@ -257,11 +265,18 @@ const DriverApplication = () => {
   return (
     <div className="w-full min-h-screen bg-white flex flex-col">
       <Header />
-
       <main className="flex flex-col items-center px-[72px] py-10 w-full md:px-10 sm:px-5 sm:py-5">
-        <h1 className="w-full max-w-[1097px] text-[#5937E0] font-work-sans text-[50px] font-bold leading-normal mb-5 md:text-[40px] sm:text-[28px] sm:mb-4">
-          Approved Driver Application
-        </h1>
+        <div className="flex justify-between items-center w-full max-w-[1114px] mb-6">
+          <h1 className="text-[#5937E0] font-work-sans text-[50px] font-bold leading-normal md:text-[40px] sm:text-[28px]">
+            Approved Driver Application
+          </h1>
+          <button
+            onClick={handleBackToDashboard}
+            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+          >
+            Back to Dashboard
+          </button>
+        </div>
         <p className="w-full max-w-[1114px] text-black font-work-sans text-xl font-normal leading-normal mb-2 md:text-lg sm:text-base sm:mb-[5px]">
           Get approved in 5 steps:
         </p>
@@ -309,13 +324,14 @@ const DriverApplication = () => {
             Once done with 1-4, complete the form below to request permission to drive the CSC van for your project.
           </li>
         </ol>
-
         <form
           onSubmit={handleSubmit}
           className="w-full max-w-[1114px] border-[3px] border-[#EBEAED] rounded-[10px] p-10 md:p-[30px] sm:p-5"
         >
+          {error && (
+            <div className="text-red-600 text-sm text-center mb-4">{error}</div>
+          )}
           <div className="flex flex-col gap-[30px] sm:gap-5">
-            {/* First Row */}
             <div className="flex flex-wrap gap-5 sm:gap-4">
               <div className="flex flex-col gap-2 w-[404px] md:w-[calc(50%-10px)] sm:w-full">
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
@@ -327,7 +343,6 @@ const DriverApplication = () => {
                   className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
-
               <div className="flex flex-col gap-2 w-[254px] md:w-[calc(50%-10px)] sm:w-full">
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
                   Driver's License Number
@@ -338,7 +353,6 @@ const DriverApplication = () => {
                   className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
-
               <div className="flex flex-col gap-2 w-[234px] md:w-[calc(50%-10px)] sm:w-full relative">
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
                   Driver's License STATE
@@ -366,8 +380,6 @@ const DriverApplication = () => {
                 )}
               </div>
             </div>
-
-            {/* Second Row */}
             <div className="flex flex-wrap gap-5 sm:gap-4">
               <div className="flex flex-col gap-2 w-[313px] md:w-[calc(50%-10px)] sm:w-full">
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
@@ -376,10 +388,12 @@ const DriverApplication = () => {
                 <input
                   type="tel"
                   name="phoneNumber"
+                  value={phoneNumber}
+                  onChange={handlePhoneNumberChange}
                   className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
+                  placeholder="( _ _ _ ) _ _ _ - _ _ _ _"
                 />
               </div>
-
               <div className="flex flex-col gap-2 w-[333px] md:w-[calc(50%-10px)] sm:w-full relative">
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
                   Project(s) you will be driving for (up to 3)
@@ -426,7 +440,6 @@ const DriverApplication = () => {
                   </div>
                 )}
               </div>
-
               <div className="flex flex-col gap-2 w-[254px] md:w-[calc(50%-10px)] sm:w-full">
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
                   License Expiry Date (MM/DD/YYYY)
@@ -438,8 +451,6 @@ const DriverApplication = () => {
                 />
               </div>
             </div>
-
-            {/* Third Row */}
             <div className="flex flex-wrap gap-5 sm:gap-4">
               <div className="flex flex-col gap-2 w-[313px] md:w-[calc(50%-10px)] sm:w-full">
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
@@ -451,7 +462,6 @@ const DriverApplication = () => {
                   className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
                 />
               </div>
-
               <div className="flex flex-col gap-2 w-[234px] md:w-[calc(50%-10px)] sm:w-full">
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
                   number of points on driving record
@@ -460,9 +470,10 @@ const DriverApplication = () => {
                   type="number"
                   name="drivingPoints"
                   className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
+                  onChange={handleDrivingPointsChange}
+                  pattern="[0-9]*"
                 />
               </div>
-
               <div className="flex flex-col gap-2 w-[295px] md:w-[calc(50%-10px)] sm:w-full">
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
                   Driver safety training Date (MM/DD/YYYY)
@@ -474,8 +485,6 @@ const DriverApplication = () => {
                 />
               </div>
             </div>
-
-            {/* File Upload Section */}
             <div className="flex flex-wrap gap-5 sm:gap-4">
               <div className="flex flex-col gap-2 w-[482px] md:w-[calc(50%-10px)] sm:w-full">
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
@@ -510,7 +519,6 @@ const DriverApplication = () => {
                   )}
                 </div>
               </div>
-
               <div className="flex flex-col gap-2 w-[462px] md:w-[calc(50%-10px)] sm:w-full">
                 <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
                   UCLA Worksafe Driver safety training Certificate
@@ -545,7 +553,6 @@ const DriverApplication = () => {
                 </div>
               </div>
             </div>
-
             <p className="text-black font-roboto text-[13px] font-normal leading-5">
               *To access a copy of your DMV record, please visit
               {" "}
@@ -560,12 +567,9 @@ const DriverApplication = () => {
               depending on your individual record. CSC will NOT reimburse this
               fee.
             </p>
-
-            {/* Acknowledgment Section */}
             <h2 className="text-black font-work-sans text-xl font-bold leading-[26px] uppercase mt-10 mb-5 sm:text-lg sm:mt-[30px] sm:mb-4">
               CHECK TO ACKNOWLEDGE (MANDATORY)
             </h2>
-
             <div className="flex flex-col gap-3 mb-[30px] sm:mb-5">
               <div className="flex items-start gap-3">
                 <input
@@ -579,7 +583,6 @@ const DriverApplication = () => {
                   check out the keys.
                 </label>
               </div>
-
               <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
@@ -592,7 +595,6 @@ const DriverApplication = () => {
                   may result in suspension of van privileges for my project.
                 </label>
               </div>
-
               <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
@@ -607,7 +609,6 @@ const DriverApplication = () => {
                   indemnified myself against during pick up.
                 </label>
               </div>
-
               <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
@@ -621,8 +622,6 @@ const DriverApplication = () => {
                 </label>
               </div>
             </div>
-
-            {/* Signature Section */}
             <div className="flex flex-col gap-2 w-[404px] mb-[30px] sm:w-full sm:mb-5">
               <label className="text-black font-work-sans text-sm font-bold leading-[26px] uppercase">
                 TYPE Full Name AS A LEgally-binding ELECTRONIC SIGNATURE
@@ -633,8 +632,6 @@ const DriverApplication = () => {
                 className="w-full h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
               />
             </div>
-
-            {/* Submit Button */}
             <div className="flex justify-end sm:justify-center">
               <button
                 type="submit"

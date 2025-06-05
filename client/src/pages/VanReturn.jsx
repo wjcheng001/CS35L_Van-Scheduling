@@ -31,7 +31,6 @@ const VanReturn = () => {
   useEffect(() => {
     async function fetchUserRoleAndBooking() {
       try {
-        // Fetch user role
         const roleResponse = await fetch("http://localhost:3000/api/admin/role", {
           credentials: "include",
         });
@@ -40,8 +39,6 @@ const VanReturn = () => {
         }
         const roleData = await roleResponse.json();
         setUserRole(roleData.user.role);
-
-        // Fetch latest confirmed booking
         const bookingResponse = await fetch("http://localhost:3000/api/bookings/data", {
           credentials: "include",
         });
@@ -75,7 +72,7 @@ const VanReturn = () => {
     if (formData.returningNow) {
       const now = new Date();
       const formattedDate = now.toISOString().split("T")[0];
-      const formattedTime = now.toTimeString().slice(0, 5); // HH:MM in local time
+      const formattedTime = now.toTimeString().slice(0, 5);
       setFormData((prev) => ({
         ...prev,
         returnDate: formattedDate,
@@ -105,31 +102,24 @@ const VanReturn = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-
     if (!formData.bookingId) {
       setError("No booking selected for return.");
       return;
     }
-
     if (!formData.cleanedVan || !formData.acceptResponsibility) {
       alert("Please check both 'I cleaned the van...' and 'I understand that I will be responsible...' before submitting.");
       return;
     }
-
-    // Check fuel level
     if (formData.fuelLevel && Number(formData.fuelLevel) < 75) {
       alert("Please refuel before return.");
       return;
     }
-
-    // Validate photos for non-admins
     if (userRole !== "admin") {
       if (!formData.exteriorPhoto || !formData.interiorPhoto || !formData.dashboardPhoto) {
         setError("Please upload all three photos (Exterior, Interior, Dashboard) as they are compulsory.");
         return;
       }
     }
-
     try {
       const formDataToSend = new FormData();
       Object.keys(formData).forEach((key) => {
@@ -137,7 +127,6 @@ const VanReturn = () => {
           formDataToSend.append(key, formData[key]);
         }
       });
-
       if (formData.exteriorPhoto) {
         formDataToSend.append("exteriorPhoto", formData.exteriorPhoto);
       }
@@ -147,19 +136,16 @@ const VanReturn = () => {
       if (formData.dashboardPhoto) {
         formDataToSend.append("dashboardPhoto", formData.dashboardPhoto);
       }
-
       const response = await fetch("http://localhost:3000/api/submit", {
         method: "POST",
         credentials: "include",
         body: formDataToSend,
       });
-
       if (!response.ok) {
         const text = await response.text();
         console.error("Non-JSON response:", text);
         throw new Error(`Submission failed: ${response.status} - ${text.slice(0, 100)}...`);
       }
-
       const data = await response.json();
       alert("Successful: Thank you for your return");
       navigate("/dashboard");
@@ -169,12 +155,24 @@ const VanReturn = () => {
     }
   };
 
+  const handleBackToDashboard = () => {
+    navigate('/dashboard');
+  };
+
   if (error) {
     return (
       <div className="flex flex-col min-h-screen bg-gray-50">
         <Header />
         <main className="flex-grow max-w-5xl mx-auto p-8">
-          <h1 className="text-4xl font-extrabold text-[#5937e0] mb-2">Return a Van</h1>
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-4xl font-extrabold text-[#5937e0]">Return a Van</h1>
+            <button
+              onClick={handleBackToDashboard}
+              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+            >
+              Back to Dashboard
+            </button>
+          </div>
           <p className="mt-4 text-red-600 font-semibold">{error}</p>
         </main>
         <Footer />
@@ -185,17 +183,22 @@ const VanReturn = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Header />
-
       <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-4xl font-extrabold text-[#5937e0] mb-2">Return a Van</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-4xl font-extrabold text-[#5937e0]">Return a Van</h1>
+          <button
+            onClick={handleBackToDashboard}
+            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+          >
+            Back to Dashboard
+          </button>
+        </div>
         <p className="text-gray-500 mb-6">Please file a return form per van at the end of each trip.</p>
-
         {error && (
           <div className="mb-8 text-red-600 font-semibold">
             {error}
           </div>
         )}
-
         <form
           onSubmit={handleSubmit}
           className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col"
@@ -203,32 +206,30 @@ const VanReturn = () => {
           <div className="mb-4">
             <div className="text-xl font-semibold text-gray-700">
               Booking ID: <strong>{formData.bookingId}</strong>
-            </div> <br></br>
+            </div> <br />
             <div className="text-xl font-semibold text-gray-700 mt-1">
               Pickup Date: <strong>{pickupDate}</strong>
-            </div> <br></br>
+            </div> <br />
             <div className="text-xl font-semibold text-gray-700 mt-1">
               Van ID: <strong>{formData.vanSerialNumber}</strong>
-            </div> <br></br>
+            </div> <br />
             <div className="text-xl font-semibold text-gray-700 mt-1">
               Project: <strong>{formData.projectName}</strong>
             </div>
-          </div> <br></br>
-
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="returningNow"
-                name="returningNow"
-                className="h-4 w-4 border-gray-300"
-                checked={formData.returningNow}
-                onChange={handleInputChange}
-              />
-              <label htmlFor="returningNow" className="ml-2 text-sm">
-                I am returning now (autofill date & time)
-              </label>
-            </div>
-
+          </div> <br />
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="returningNow"
+              name="returningNow"
+              className="h-4 w-4 border-gray-300"
+              checked={formData.returningNow}
+              onChange={handleInputChange}
+            />
+            <label htmlFor="returningNow" className="ml-2 text-sm">
+              I am returning now (autofill date & time)
+            </label>
+          </div>
           <div className="mt-4 space-y-4">
             <div>
               <label htmlFor="returnDate" className="text-sm font-semibold text-gray-700">
@@ -244,7 +245,6 @@ const VanReturn = () => {
                 required
               />
             </div>
-
             <div>
               <label htmlFor="returnTime" className="text-sm font-semibold text-gray-700">
                 Return Time
@@ -259,7 +259,6 @@ const VanReturn = () => {
                 required
               />
             </div>
-
             <div>
               <label htmlFor="fuelLevel" className="text-sm font-semibold text-gray-700">
                 Fuel Level (%)
@@ -276,7 +275,6 @@ const VanReturn = () => {
                 placeholder="0-100"
               />
             </div>
-
             <div>
               <label htmlFor="parkingLocation" className="text-sm font-semibold text-gray-700">
                 Parking Location
@@ -295,7 +293,6 @@ const VanReturn = () => {
               </p>
             </div>
           </div>
-
           <div className="mt-4 space-y-2">
             <div className="flex items-center">
               <input
@@ -318,7 +315,6 @@ const VanReturn = () => {
                 </a>
               </label>
             </div>
-
             <div className="flex items-center">
               <input
                 type="checkbox"
@@ -332,7 +328,6 @@ const VanReturn = () => {
                 I cleaned the van and took out all the trash my project left behind
               </label>
             </div>
-
             <div className="flex items-center">
               <input
                 type="checkbox"
@@ -346,7 +341,6 @@ const VanReturn = () => {
                 I have refueled the van at the UCLA Fleet Shop. The van has {">"}75% fuel
               </label>
             </div>
-
             <div className="flex items-center">
               <input
                 type="checkbox"
@@ -361,7 +355,6 @@ const VanReturn = () => {
               </label>
             </div>
           </div>
-
           {(formData.experiencedProblem || formData.hadAccident) && (
             <div className="mt-4">
               <label htmlFor="damageDescription" className="text-sm font-semibold text-gray-700">
@@ -376,7 +369,6 @@ const VanReturn = () => {
               />
             </div>
           )}
-
           <div className="mt-4 space-y-4">
             <div>
               <label className="text-sm font-semibold text-gray-700">
@@ -401,7 +393,6 @@ const VanReturn = () => {
                 </label>
               </div>
             </div>
-
             <div>
               <label className="text-sm font-semibold text-gray-700">
                 Interior Photo {userRole !== "admin" ? "(Compulsory)" : "(Optional)"}
@@ -425,7 +416,6 @@ const VanReturn = () => {
                 </label>
               </div>
             </div>
-
             <div>
               <label className="text-sm font-semibold text-gray-700">
                 Dashboard Display Photo (Fuel etc) {userRole !== "admin" ? "(Compulsory)" : "(Optional)"}
@@ -450,7 +440,6 @@ const VanReturn = () => {
               </div>
             </div>
           </div>
-
           <div className="mt-4 flex items-center">
             <input
               type="checkbox"
@@ -465,7 +454,6 @@ const VanReturn = () => {
               I understand that I will be responsible for all newly discovered damage/ faults and cleanliness issues discovered by the next user of the van unless I have proven myself innocent with the photo evidence above.
             </label>
           </div>
-
           <button
             type="submit"
             className="mt-6 w-full bg-[#5937e0] text-white py-2 px-4 rounded hover:bg-[#452bb3] transition-colors"
@@ -474,7 +462,6 @@ const VanReturn = () => {
           </button>
         </form>
       </main>
-
       <Footer />
     </div>
   );

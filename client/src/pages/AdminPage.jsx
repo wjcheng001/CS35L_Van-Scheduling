@@ -8,6 +8,7 @@ const AdminPage = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchUid, setSearchUid] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -112,11 +113,21 @@ const AdminPage = () => {
     }
   };
 
+  const handleSearchUidChange = (e) => {
+    const value = e.target.value;
+    if (value === "" || /^[0-9]{0,9}$/.test(value)) {
+      setSearchUid(value);
+      setError("");
+    } else {
+      setError("UID must be exactly 9 numerical digits.");
+    }
+  };
+
   const handleSearch = () => {
-    if (searchUid.trim()) {
+    if (searchUid.trim().length === 9) {
       navigate(`/review/${searchUid}`);
     } else {
-      alert("Please enter a UID to search.");
+      alert("Please enter a valid 9-digit UID.");
     }
   };
 
@@ -180,13 +191,19 @@ const AdminPage = () => {
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Search Application by UID</h2>
           <div className="flex gap-4">
-            <input
-              type="text"
-              value={searchUid}
-              onChange={(e) => setSearchUid(e.target.value)}
-              placeholder="Enter UID"
-              className="w-[300px] h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
-            />
+            <div className="flex flex-col">
+              <input
+                type="text"
+                value={searchUid}
+                onChange={handleSearchUidChange}
+                placeholder="Enter 9-digit UID"
+                className="w-[300px] h-[43px] px-4 py-2 rounded-[100px] border-2 border-black"
+                pattern="[0-9]{0,9}"
+              />
+              {error && (
+                <div className="text-red-600 text-sm mt-2">{error}</div>
+              )}
+            </div>
             <button
               onClick={handleSearch}
               className="px-4 py-2 bg-[#5937E0] text-white rounded-md hover:bg-[#4b2db3] transition-colors"
